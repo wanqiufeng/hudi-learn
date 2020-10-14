@@ -15,6 +15,7 @@
             <version>2.4.4</version>
             <!--<scope>provided</scope>-->
             <exclusions>
+                <!--本地调试阶段先去掉，因为其中的类会跟hudi-spark-bundle_2.11中的类冲突，因为他们连包名都一致-->
                 <exclusion>
                     <groupId>org.apache.httpcomponents</groupId>
                     <artifactId>httpclient</artifactId>
@@ -38,6 +39,5 @@
             <artifactId>spark-avro_2.11</artifactId>
             <version>2.4.4</version>
         </dependency>
-        <!-- Thanks for using https://jar-download.com -->
     </dependencies>
 </project>
