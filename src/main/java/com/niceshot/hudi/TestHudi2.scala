@@ -24,13 +24,14 @@ object TestHudi2 {
       .config("spark.serializer","org.apache.spark.serializer.KryoSerializer")
       .getOrCreate()
     val tableName = "hudi_trips_cow"
-    val basePath = "file:/Users/apple/Temp/hudi_data"
+    //val basePath = "file:/Users/apple/Temp/hudi_data"
+    val basePath = "hdfs://master:8020/hudi_test"
     val dataGen = new DataGenerator
     //val inserts = convertToStringList(dataGen.generateInserts(10))
     val inserts = List("{\"ts\": 0.0, \"uuid\": \"7fa0bf0a-ed9a-4bf0-bd63-7b163d39781a\", \"rider\": \"rider-214\", \"driver\": \"driver-213\", \"begin_lat\": 0.4726905879569653, \"begin_lon\": 0.46157858450465483, \"end_lat\": 0.754803407008858, \"end_lon\": 0.9671159942018241, \"fare\": 34.158284716382845, \"partitionpath\": \"americas/brazil/sao_paulo\"}")
     val df = spark.read.json(spark.sparkContext.parallelize(inserts, 2))
     df.write.format("hudi").
-      option(OPERATION_OPT_KEY,"delete").
+      //option(OPERATION_OPT_KEY,"delete").
       options(getQuickstartWriteConfigs).
       option(PRECOMBINE_FIELD_OPT_KEY, "ts").
       option(RECORDKEY_FIELD_OPT_KEY, "uuid").
