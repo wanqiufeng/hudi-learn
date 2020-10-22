@@ -1,5 +1,6 @@
 package com.niceshot.hudi
 
+import org.apache.commons.lang3.ObjectUtils.mode
 import org.apache.http.client.methods.HttpRequestBase
 import org.apache.hudi.DataSourceWriteOptions.{PARTITIONPATH_FIELD_OPT_KEY, PRECOMBINE_FIELD_OPT_KEY, RECORDKEY_FIELD_OPT_KEY}
 import org.apache.hudi.QuickstartUtils.{DataGenerator, convertToStringList, getQuickstartWriteConfigs}
@@ -8,20 +9,25 @@ import org.apache.hudi.QuickstartUtils._
 
 import scala.collection.JavaConversions._
 import org.apache.hudi.DataSourceReadOptions._
+import org.apache.hudi.DataSourceWriteOptions
 import org.apache.hudi.DataSourceWriteOptions._
+import org.apache.hudi.config.HoodieWriteConfig
 import org.apache.hudi.config.HoodieWriteConfig._
 import org.apache.spark.sql.SaveMode._
 import org.apache.spark.sql.{SaveMode, SparkSession}
+
 /**
  * @author created by chenjun at 2020-10-14 15:32
  *
  */
 object TestHudi2 {
   def main(args: Array[String]): Unit = {
+    //System.setProperty("hadoop.home.dir", "C:\\Users\\wanqi\\DevTools\\hadoop-dev")
+    //加上述代码的原因：https://stackoverflow.com/questions/35652665/java-io-ioexception-could-not-locate-executable-null-bin-winutils-exe-in-the-ha
     val spark = SparkSession.builder
       .appName("Simple Application")
       .master("local[2]")
-      .config("spark.serializer","org.apache.spark.serializer.KryoSerializer")
+      .config("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
       .getOrCreate()
     val tableName = "hudi_trips_cow"
     //val basePath = "file:/Users/apple/Temp/hudi_data"
@@ -38,9 +44,16 @@ object TestHudi2 {
       option(PARTITIONPATH_FIELD_OPT_KEY, "partitionpath").
       //option(HIVE_PARTITION_EXTRACTOR_CLASS_OPT_KEY,"").
       option(TABLE_NAME, tableName).
-      mode(SaveMode.Append).
+      option(DataSourceWriteOptions.TABLE_NAME_OPT_KEY, "hudi_hive_test").
+      option(DataSourceWriteOptions.HIVE_SYNC_ENABLED_OPT_KEY, true).
+      option(DataSourceWriteOptions.HIVE_DATABASE_OPT_KEY, "default").
+      option(DataSourceWriteOptions.HIVE_TABLE_OPT_KEY, "hudi_hive_test").
+      option(DataSourceWriteOptions.HIVE_USER_OPT_KEY, "hive").
+      option(DataSourceWriteOptions.HIVE_PASS_OPT_KEY, "hive").
+      option(DataSourceWriteOptions.HIVE_URL_OPT_KEY, "jdbc:hive2://192.168.16.181:10000").
+      //option(DataSourceWriteOptions.HIVE_PARTITION_FIELDS_OPT_KEY, "").
+      mode(SaveMode.Overwrite).
       save(basePath)
-
 
 
     val tripsSnapshotDF = spark.
