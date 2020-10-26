@@ -1,5 +1,6 @@
 package com.niceshot.hudi
 
+import com.niceshot.hudi.util.CanalDataParser
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.streaming.{Seconds, StreamingContext}
@@ -34,8 +35,8 @@ object KafkaTest {
     )
     //stream.map(record => (record.key, record.value)).print(6)
     stream.map(record => {
-      println("消费kafka数据")
-      println(record.toString)
+      val obj = CanalDataParser.parse(record.value())
+      println("hello")
     }).count().print();
 
     ssc.start()

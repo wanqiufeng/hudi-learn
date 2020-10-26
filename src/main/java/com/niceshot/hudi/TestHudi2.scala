@@ -1,5 +1,6 @@
 package com.niceshot.hudi
 
+import com.niceshot.hudi.util.CanalDataParser
 import org.apache.commons.lang3.ObjectUtils.mode
 import org.apache.http.client.methods.HttpRequestBase
 import org.apache.hudi.DataSourceWriteOptions.{PARTITIONPATH_FIELD_OPT_KEY, PRECOMBINE_FIELD_OPT_KEY, RECORDKEY_FIELD_OPT_KEY}
@@ -14,7 +15,7 @@ import org.apache.hudi.DataSourceWriteOptions._
 import org.apache.hudi.config.HoodieWriteConfig
 import org.apache.hudi.config.HoodieWriteConfig._
 import org.apache.spark.sql.SaveMode._
-import org.apache.spark.sql.{SaveMode, SparkSession}
+import org.apache.spark.sql.{DataFrame, SaveMode, SparkSession}
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.common.serialization.StringDeserializer
 import org.apache.spark.SparkConf
@@ -29,7 +30,18 @@ import org.apache.spark.streaming.kafka010.ConsumerStrategies.Subscribe
  */
 object TestHudi2 {
   def main(args: Array[String]): Unit = {
-
+    val appName = "Simple Application"
+    val kafkaServer = "192.168.16.237:9092,192.168.16.236:9092"
+    val kafkaConsumerGroupId = "use_a_separate_group_id_for_each_stream"
+    val kafkaConsumerOffset = "earliest"
+    val kafkaEnableAutoCommit = "false"
+    val kafkaConsumeTopic="test"
+    val hudiTableName="hudi_hive_test4"
+    val baseHudiTablePath = "hdfs://192.168.16.181:8020/hudi_data"
+    val realHudiTablePath = baseHudiTablePath + "hudi_table5"
+    val precombineField = "test_time"
+    val recordKey = "id";
+    val partitionKey="create_date"
     //第一次数据怎么批量导入
     //用spark直接拉取对应表在hive中昨天的分区，将其导入到hudi
     //先将对应的接到canal
@@ -56,22 +68,35 @@ object TestHudi2 {
       //应用名，应用面可以根据表名自动拼
 
     val conf = new SparkConf()
-      .setAppName("Simple Application")
-      .setMaster("local[1]")
+      .setAppName(appName)
+      .setMaster("local[4]")
       .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
     val ssc = new StreamingContext(conf, Seconds(60))
     val spark = SparkSession.builder().config(conf).getOrCreate();
 
     val kafkaParams = Map[String, Object](
-      "bootstrap.servers" -> "192.168.16.237:9092,192.168.16.236:9092",
+      "bootstrap.servers" -> kafkaServer,
       "key.deserializer" -> classOf[org.apache.kafka.common.serialization.StringDeserializer],
       "value.deserializer" -> classOf[org.apache.kafka.common.serialization.StringDeserializer],
-      "group.id" -> "use_a_separate_group_id_for_each_stream",
-      "auto.offset.reset" -> "earliest",
-      "enable.auto.commit" -> (false: java.lang.Boolean)
+      "group.id" -> kafkaConsumerGroupId,
+      "auto.offset.reset" -> kafkaConsumerOffset,
+      "enable.auto.commit" ->kafkaEnableAutoCommit
     )
 
-    val topics = Array("test")
+    val dataStreamReader = spark
+      .readStream
+      .format("kafka")
+      .option("kafka.bootstrap.servers", kafkaServer)
+      .option("subscribe", kafkaConsumeTopic)
+      .option("startingOffsets", kafkaConsumerOffset)
+      .option("maxOffsetsPerTrigger", 100000)
+      .option("failOnDataLoss", false)
+
+    val  query = dataStreamReader.load().writeStream.foreachBatch((batchDF: DataFrame, _: Long) => {
+        println("fsdf")
+    }).start()
+    query.awaitTermination()
+    val topics = Array(kafkaConsumeTopic)
     val stream = KafkaUtils.createDirectStream[String, String](
       ssc,
       PreferConsistent,
@@ -79,54 +104,48 @@ object TestHudi2 {
     )
 
     //stream.map(record => (record.key, record.value))
-    stream.map(record => {
-      println("消费kafka数据")
-      println(record.toString)
-    })
+    stream.map(record=> {
+      val tableName = hudiTableName
+      //val basePath = "file:/Users/apple/Temp/hudi_data"
+      val basePath = realHudiTablePath
+      val hudiDataPackage = CanalDataParser.parse(record.value())
+      if(hudiDataPackage != null) {
+        val inserts = hudiDataPackage.getData
+        val df = spark.read.json(spark.sparkContext.parallelize(inserts, 2))
+        df.write.format("hudi").
+          option(OPERATION_OPT_KEY,hudiDataPackage.getOperationType).
+          options(getQuickstartWriteConfigs).
+          option(PRECOMBINE_FIELD_OPT_KEY,precombineField).
+          option(RECORDKEY_FIELD_OPT_KEY, recordKey).
+          option(PARTITIONPATH_FIELD_OPT_KEY, partitionKey).
+          option(TABLE_NAME, hudiTableName).
+          option(DataSourceWriteOptions.TABLE_NAME_OPT_KEY,tableName).
+          option(DataSourceWriteOptions.HIVE_TABLE_OPT_KEY, tableName).
+          option(DataSourceWriteOptions.META_SYNC_ENABLED_OPT_KEY, true).
+          option(DataSourceWriteOptions.HIVE_DATABASE_OPT_KEY, "default").
+          option(DataSourceWriteOptions.HIVE_USER_OPT_KEY, "hive").
+          option(DataSourceWriteOptions.HIVE_PASS_OPT_KEY, "hive").
+          option(DataSourceWriteOptions.HIVE_URL_OPT_KEY, "jdbc:hive2://192.168.16.181:10000").
+          option(DataSourceWriteOptions.HIVE_PARTITION_FIELDS_OPT_KEY,partitionKey).
+          option(DataSourceWriteOptions.HIVE_STYLE_PARTITIONING_OPT_KEY,true).
+          mode(SaveMode.Append).
+          save(basePath)
+        println("消费kafka数据")
+        println(record.toString)
 
-
-
+        val tripsSnapshotDF = spark.
+          read.
+          format("hudi").
+          load(realHudiTablePath + "/*/*/*/*")
+        //load(basePath) use "/partitionKey=partitionValue" folder structure for Spark auto partition discovery
+        tripsSnapshotDF.createOrReplaceTempView("hudi_trips_snapshot")
+        println("first query===========>")
+        spark.sql("select * from  hudi_trips_snapshot ").show()
+      }
+    }).print()
+    ssc.start()
+    ssc.awaitTermination()
     //System.setProperty("hadoop.home.dir", "C:\\Users\\wanqi\\DevTools\\hadoop-dev")
     //加上述代码的原因：https://stackoverflow.com/questions/35652665/java-io-ioexception-could-not-locate-executable-null-bin-winutils-exe-in-the-ha
-
-    val tableName = "hudi_hive_test4"
-    //val basePath = "file:/Users/apple/Temp/hudi_data"
-    val basePath = "hdfs://192.168.16.181:8020/hudi_test4"
-    val dataGen = new DataGenerator
-    //val inserts = convertToStringList(dataGen.generateInserts(10))
-    val inserts = List("{\n    \"volume\": 456506,\n    \"symbol\": \"FB\",\n    \"ts\": \"2018-08-31 09:30:00\",\n    \"month\": \"08\",\n    \"high\": 177.5,\n    \"low\": 176.465,\n    \"key\": \"FB_2018-08-31 09\",\n    \"year\": 2018,\n    \"date\": \"2018/08/31\",\n    \"close\": 176.83,\n    \"open\": 177.29,\n    \"day\": \"31\",\n \"add_clo\": \"haha\"}",
-    "{\"volume\": 0, \"symbol\": \"TPNL\", \"ts\": \"2018-08-31 09:30:00\", \"month\": \"08\", \"high\": 3.38, \"low\": 3.38, \"key\": \"TPNL_2018-08-31 09\", \"year\": 2018, \"date\": \"2018/08/31\", \"close\": 3.37, \"open\": 3.37, \"day\": \"31\",\"add_clo\": \"heihei\"}",
-    "{\"volume\": 558465, \"symbol\": \"CGC\", \"ts\": \"2018-08-31 09:30:00\", \"month\": \"08\", \"high\": 44.58, \"low\": 44.2876, \"key\": \"CGC_2018-08-31 09\", \"year\": 2018, \"date\": \"2018/08/31\", \"close\": 44.29, \"open\": 44.5, \"day\": \"31\",\"add_clo\": \"wawa\"}")
-    val df = spark.read.json(spark.sparkContext.parallelize(inserts, 2))
-    df.write.format("hudi").
-      //option(OPERATION_OPT_KEY,"delete").
-      options(getQuickstartWriteConfigs).
-      option(PRECOMBINE_FIELD_OPT_KEY, "ts").
-      option(RECORDKEY_FIELD_OPT_KEY, "key").
-      option(PARTITIONPATH_FIELD_OPT_KEY, "date").
-      //option(HIVE_PARTITION_EXTRACTOR_CLASS_OPT_KEY,"").
-      option(TABLE_NAME, tableName).
-      option(DataSourceWriteOptions.TABLE_NAME_OPT_KEY,tableName).
-      option(DataSourceWriteOptions.HIVE_TABLE_OPT_KEY, tableName).
-      //option(DataSourceWriteOptions.HIVE_SYNC_ENABLED_OPT_KEY, true).
-      option(DataSourceWriteOptions.META_SYNC_ENABLED_OPT_KEY, true).
-      option(DataSourceWriteOptions.HIVE_DATABASE_OPT_KEY, "default").
-      option(DataSourceWriteOptions.HIVE_USER_OPT_KEY, "hive").
-      option(DataSourceWriteOptions.HIVE_PASS_OPT_KEY, "hive").
-      option(DataSourceWriteOptions.HIVE_URL_OPT_KEY, "jdbc:hive2://192.168.16.181:10000").
-      option(DataSourceWriteOptions.HIVE_PARTITION_FIELDS_OPT_KEY, "date").
-      option(DataSourceWriteOptions.HIVE_STYLE_PARTITIONING_OPT_KEY,true).
-      mode(SaveMode.Append).
-      save(basePath)
-
-
-    val tripsSnapshotDF = spark.
-      read.
-      format("hudi").
-      load(basePath + "/*/*/*/*")
-    //load(basePath) use "/partitionKey=partitionValue" folder structure for Spark auto partition discovery
-    tripsSnapshotDF.createOrReplaceTempView("hudi_trips_snapshot")
-    println("first query===========>")
-    spark.sql("select * from  hudi_trips_snapshot ").show()
   }
 }

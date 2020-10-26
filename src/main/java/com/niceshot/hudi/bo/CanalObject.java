@@ -1,6 +1,5 @@
 package com.niceshot.hudi.bo;
 
-import com.niceshot.hudi.constant.CanalDataType;
 import lombok.Data;
 
 import java.util.List;
@@ -12,7 +11,7 @@ import java.util.Map;
 @Data
 public class CanalObject {
     private String table;
-    private CanalDataType type;
+    private String type;
     private List<Map<String,String>> data;
     private String database;
     private Long es;
