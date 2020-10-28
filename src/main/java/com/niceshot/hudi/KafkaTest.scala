@@ -35,10 +35,9 @@ object KafkaTest {
     )
     //stream.map(record => (record.key, record.value)).print(6)
     stream.map(record => {
-      val obj = CanalDataParser.parse(record.value())
+      //val obj = CanalDataParser.parse(record.value())
       println("hello")
     }).count().print();
-
     ssc.start()
     ssc.awaitTermination()
   }

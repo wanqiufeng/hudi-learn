@@ -6,9 +6,11 @@ import com.google.common.collect.Sets;
 import com.niceshot.hudi.bo.CanalObject;
 import com.niceshot.hudi.bo.HudiHandleObject;
 import com.niceshot.hudi.constant.Constants;
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.math3.util.Pair;
 
 import java.io.IOException;
+import java.sql.Types;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,7 +37,7 @@ public class CanalDataParser {
      * @return
      * @throws IOException
      */
-    public static HudiHandleObject parse(String originalCanalData) throws IOException {
+    public static HudiHandleObject parse(String originalCanalData,String partitionDateField) throws IOException {
         Preconditions.checkNotNull(originalCanalData, "canal data can not be null");
         //直接一次性解析成对象, 从对象中提取出想要的东西
         //如果不为自己关注的操作类型，直接范围
@@ -50,25 +52,44 @@ public class CanalDataParser {
         result.setOperationType(canalOperationMapping2HudiOperation.get(canalObject.getType()));
         result.setDatabase(canalObject.getDatabase());
         result.setTable(canalObject.getTable());
-        result.setData(buildTypeData(canalObject));
+        result.setData(buildTypeData(canalObject,partitionDateField));
         return result;
     }
+
+
 
     /**
      * 将canal中的map数据，转化成json List
      *
      * @param canalObject
+     * @param partitionDateField
      * @return
      */
-    private static List<String> buildTypeData(CanalObject canalObject) {
+    private static List<String> buildTypeData(CanalObject canalObject, String partitionDateField) {
         //找出其中的数据
         //从type中，找到其对应的数据类型
         //将这其value转化成对应对象
         List<Map<String, String>> data = canalObject.getData();
         Map<String, Integer> mysqlType = canalObject.getSqlType();
-        return data.stream().map(dataMap -> convertStringValue2TypeValue(dataMap, mysqlType))
+        return data.stream().map(dataMap -> addHudiRecognizePartition(dataMap,partitionDateField,mysqlType))
                 .map(stringObjectMap -> JsonUtils.toJson(stringObjectMap))
                 .collect(Collectors.toList());
+    }
+
+    private static Map<String,String> addHudiRecognizePartition(Map<String, String> dataMap, String partitionDateField, Map<String, Integer> mysqlType) {
+        String partitionOriginalValue = dataMap.get(partitionDateField);
+        Integer sqlType = mysqlType.get(partitionDateField);
+        Preconditions.checkArgument(StringUtils.isNotBlank(partitionOriginalValue),"partition value can not be null");
+        String hudiPartitionFormatValue;
+        if(Types.TIMESTAMP == sqlType) {
+            hudiPartitionFormatValue = DateUtils.dateStringFormat(partitionOriginalValue, DateUtils.DATE_FORMAT_YYYY_MM_DD_hh_mm_ss, DateUtils.DATE_FORMAT_YYYY_MM_DD_SLASH);
+        } else if(Types.DATE == sqlType) {
+            hudiPartitionFormatValue = DateUtils.dateStringFormat(partitionOriginalValue,DateUtils.DATE_FORMAT_YYYY_MM_DD,DateUtils.DATE_FORMAT_YYYY_MM_DD_SLASH);
+        } else {
+            throw new RuntimeException("partition field must be any type of [datetime,timestamp,date] ,current sqlType is :"+sqlType);
+        }
+        dataMap.put(Constants.HudiTableMeta.PARTITION_KEY,hudiPartitionFormatValue);
+        return dataMap;
     }
 
     /**
@@ -76,15 +97,9 @@ public class CanalDataParser {
      *
      * @param stringValueMap
      * @param mysqlType
+     * @param partitionDateField
      * @return
      */
-    private static Map<String, Object> convertStringValue2TypeValue(Map<String, String> stringValueMap, Map<String, Integer> mysqlType) {
-        return stringValueMap.entrySet().stream().map(stringStringEntry -> {
-            Integer type = mysqlType.get(stringStringEntry.getKey());
-            return Pair.create(stringStringEntry.getKey(), SqlTypeUtils.convertSqlStringValue2JavaTypeObj(stringStringEntry.getValue(), type));
-        }).collect(HashMap::new, (m, v) -> m.put(v.getKey(), v.getValue()), HashMap::putAll);
-    }
-
     public static void main(String[] args) throws IOException {
         //将原始数据读取成一个ObjectNode
         //读取其中的data节点、type节点(insert 、update、delete的binlog)、mysqlType
@@ -117,7 +132,7 @@ public class CanalDataParser {
                 "    \"type\": \"INSERT\"\n" +
                 "}";
         // json操作相关资料：https://stackoverflow.com/questions/26190851/get-single-field-from-json-using-jackson
-        HudiHandleObject parse = CanalDataParser.parse(demoString);
+        //HudiHandleObject parse = CanalDataParser.parse(demoString);
         System.out.println("test");
     }
 }

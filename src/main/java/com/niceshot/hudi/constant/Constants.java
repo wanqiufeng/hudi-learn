@@ -15,4 +15,8 @@ public interface Constants {
         String INSERT = "insert";
         String DELETE = "delete";
     }
+
+    interface HudiTableMeta {
+        String PARTITION_KEY = "_partition_date";
+    }
 }

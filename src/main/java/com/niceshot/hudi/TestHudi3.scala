@@ -59,44 +59,17 @@ object TestHudi3 {
       .setAppName("Simple Application")
       .setMaster("local[1]")
       .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
-    val ssc = new StreamingContext(conf, Seconds(60))
     val spark = SparkSession.builder().config(conf).getOrCreate();
-
-    val kafkaParams = Map[String, Object](
-      "bootstrap.servers" -> "192.168.16.237:9092,192.168.16.236:9092",
-      "key.deserializer" -> classOf[org.apache.kafka.common.serialization.StringDeserializer],
-      "value.deserializer" -> classOf[org.apache.kafka.common.serialization.StringDeserializer],
-      "group.id" -> "use_a_separate_group_id_for_each_stream",
-      "auto.offset.reset" -> "earliest",
-      "enable.auto.commit" -> (false: java.lang.Boolean)
-    )
-
-    val topics = Array("test")
-    val stream = KafkaUtils.createDirectStream[String, String](
-      ssc,
-      PreferConsistent,
-      Subscribe[String, String](topics, kafkaParams)
-    )
-
-    //stream.map(record => (record.key, record.value))
-    stream.map(record => {
-      println("消费kafka数据")
-      println(record.toString)
-    })
-
-
 
     //System.setProperty("hadoop.home.dir", "C:\\Users\\wanqi\\DevTools\\hadoop-dev")
     //加上述代码的原因：https://stackoverflow.com/questions/35652665/java-io-ioexception-could-not-locate-executable-null-bin-winutils-exe-in-the-ha
 
-    val tableName = "hudi_hive_test4"
+    val tableName = "hudi_hive_test19"
     //val basePath = "file:/Users/apple/Temp/hudi_data"
-    val basePath = "hdfs://192.168.16.181:8020/hudi_test4"
+    val basePath = "hdfs://192.168.16.181:8020/hudi_hive_test19"
     val dataGen = new DataGenerator
     //val inserts = convertToStringList(dataGen.generateInserts(10))
-    val inserts = List("{\n    \"volume\": 456506,\n    \"symbol\": \"FB\",\n    \"ts\": \"2018-08-31 09:30:00\",\n    \"month\": \"08\",\n    \"high\": 177.5,\n    \"low\": 176.465,\n    \"key\": \"FB_2018-08-31 09\",\n    \"year\": 2018,\n    \"date\": \"2018/08/31\",\n    \"close\": 176.83,\n    \"open\": 177.29,\n    \"day\": \"31\",\n \"add_clo\": \"haha\"}",
-      "{\"volume\": 0, \"symbol\": \"TPNL\", \"ts\": \"2018-08-31 09:30:00\", \"month\": \"08\", \"high\": 3.38, \"low\": 3.38, \"key\": \"TPNL_2018-08-31 09\", \"year\": 2018, \"date\": \"2018/08/31\", \"close\": 3.37, \"open\": 3.37, \"day\": \"31\",\"add_clo\": \"heihei\"}",
-      "{\"volume\": 558465, \"symbol\": \"CGC\", \"ts\": \"2018-08-31 09:30:00\", \"month\": \"08\", \"high\": 44.58, \"low\": 44.2876, \"key\": \"CGC_2018-08-31 09\", \"year\": 2018, \"date\": \"2018/08/31\", \"close\": 44.29, \"open\": 44.5, \"day\": \"31\",\"add_clo\": \"wawa\"}")
+    val inserts = List("{\n    \"volume\": 456506,\n    \"symbol\": \"FB\",\n    \"ts\": \"2018-08-31 09:30:00\",\n    \"month\": \"08\",\n    \"high\": 177.5,\n    \"low\": 176.465,\n    \"key\": \"FB_2018-08-31 09\",\n    \"year\": 2018,\n    \"date\": 1603877906000,\n    \"close\": 176.83,\n    \"open\": 177.29,\n    \"day\": \"31\",\n \"add_clo\": \"haha\"}")
     val df = spark.read.json(spark.sparkContext.parallelize(inserts, 2))
     df.write.format("hudi").
       //option(OPERATION_OPT_KEY,"delete").
