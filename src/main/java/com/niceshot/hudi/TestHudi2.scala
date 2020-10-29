@@ -27,7 +27,7 @@ object TestHudi2 {
     val kafkaConsumerOffset = "latest"
     val kafkaEnableAutoCommit = "false"
     val kafkaConsumeTopic="test"
-    val hudiTableName="hudi_hive_test20"
+    val hudiTableName="hudi_hive_test33"
     val baseHudiTablePath = "hdfs://192.168.16.181:8020/hudi_data/"
     val realHudiTablePath = baseHudiTablePath + hudiTableName
     val precombineField = "id"
@@ -63,57 +63,71 @@ object TestHudi2 {
       record != null
     }).foreachRDD(recordRDD=> {
       try {
-        val hasNotDelete = recordRDD.filter(hudiData=> {
-          hudiData.getOperationType == Constants.HudiOperationType.DELETE
-        }).isEmpty()
-        print("是否没有删除操作:"+hasNotDelete)
-        if(hasNotDelete) {
-          //如果没有删除操作，则走批量upsert
-          val upsertData = recordRDD.map(hudiData=>{hudiData.getData}).flatMap(data=>data)
-          val df = spark.read.json(upsertData)
-          df.write.format("hudi").
-            option(OPERATION_OPT_KEY,UPSERT_OPERATION_OPT_VAL).
-            options(getQuickstartWriteConfigs).
-            option(PRECOMBINE_FIELD_OPT_KEY,precombineField).
-            option(RECORDKEY_FIELD_OPT_KEY, recordKey).
-            option(PARTITIONPATH_FIELD_OPT_KEY, Constants.HudiTableMeta.PARTITION_KEY).
-            option(TABLE_NAME, hudiTableName).
-            option(DataSourceWriteOptions.TABLE_NAME_OPT_KEY,hudiTableName).
-            option(DataSourceWriteOptions.HIVE_TABLE_OPT_KEY, hudiTableName).
-            option(DataSourceWriteOptions.META_SYNC_ENABLED_OPT_KEY, true).
-            option(DataSourceWriteOptions.HIVE_DATABASE_OPT_KEY, "default").
-            option(DataSourceWriteOptions.HIVE_USER_OPT_KEY, "hive").
-            option(DataSourceWriteOptions.HIVE_PASS_OPT_KEY, "hive").
-            option(DataSourceWriteOptions.HIVE_URL_OPT_KEY, "jdbc:hive2://192.168.16.181:10000").
-            option(DataSourceWriteOptions.HIVE_PARTITION_FIELDS_OPT_KEY,Constants.HudiTableMeta.PARTITION_KEY).
-            option(DataSourceWriteOptions.HIVE_STYLE_PARTITIONING_OPT_KEY,true).
-            mode(SaveMode.Append).
-            save(realHudiTablePath)
+        if(recordRDD.isEmpty()) {
+          //hudi同步到hive的工具，默认会基于timeline中最近一次的 complete instant的格式，去生成hive表的各格式。如果你最近插入了一条空数据，那创建的hive表将没有字段
+          print("空结果集，不做操作")
         } else {
-          //如果有删除操作，那么必须把数据拉回本地，进行操作
-          val localData = recordRDD.collect()
-          localData.foreach(record=> {
-            val df = spark.read.json(spark.sparkContext.parallelize(record.getData, 2))
+          val hasNotDelete = recordRDD.filter(hudiData=> {
+            hudiData.getOperationType == Constants.HudiOperationType.DELETE
+          }).isEmpty()
+          print("是否没有删除操作:"+hasNotDelete)
+          if(hasNotDelete) {
+            //如果没有删除操作，则走批量upsert
+            val upsertData = recordRDD.map(hudiData=>{hudiData.getData}).flatMap(data=>data)
+            val df = spark.read.json(upsertData)
             df.write.format("hudi").
-              option(OPERATION_OPT_KEY,record.getOperationType).
+              option(OPERATION_OPT_KEY,UPSERT_OPERATION_OPT_VAL).
               options(getQuickstartWriteConfigs).
               option(PRECOMBINE_FIELD_OPT_KEY,precombineField).
               option(RECORDKEY_FIELD_OPT_KEY, recordKey).
               option(PARTITIONPATH_FIELD_OPT_KEY, Constants.HudiTableMeta.PARTITION_KEY).
               option(TABLE_NAME, hudiTableName).
               option(DataSourceWriteOptions.TABLE_NAME_OPT_KEY,hudiTableName).
-              option(DataSourceWriteOptions.HIVE_TABLE_OPT_KEY, hudiTableName).
+
+              //这里是用于设置hdfs中分区文件夹的格式，如果为true, 你即便不同步到hive，文件夹的格式也会按hive的格式来，比如=2020-10-21
+              option(DataSourceWriteOptions.HIVE_STYLE_PARTITIONING_OPT_KEY,true).
+           /*
+               关闭hive数据结构实时同步，新增数据量大时，每次都去连hive metastore，怕扛不住
+               option(DataSourceWriteOptions.HIVE_TABLE_OPT_KEY, hudiTableName).
               option(DataSourceWriteOptions.META_SYNC_ENABLED_OPT_KEY, true).
               option(DataSourceWriteOptions.HIVE_DATABASE_OPT_KEY, "default").
               option(DataSourceWriteOptions.HIVE_USER_OPT_KEY, "hive").
               option(DataSourceWriteOptions.HIVE_PASS_OPT_KEY, "hive").
               option(DataSourceWriteOptions.HIVE_URL_OPT_KEY, "jdbc:hive2://192.168.16.181:10000").
               option(DataSourceWriteOptions.HIVE_PARTITION_FIELDS_OPT_KEY,Constants.HudiTableMeta.PARTITION_KEY).
-              option(DataSourceWriteOptions.HIVE_STYLE_PARTITIONING_OPT_KEY,true).
+              */
               mode(SaveMode.Append).
               save(realHudiTablePath)
-          })
+          } else {
+            //如果有删除操作，那么必须把数据拉回本地，进行操作
+            val localData = recordRDD.collect()
+            localData.foreach(record=> {
+              val df = spark.read.json(spark.sparkContext.parallelize(record.getData, 2))
+              df.write.format("hudi").
+                option(OPERATION_OPT_KEY,record.getOperationType).
+                options(getQuickstartWriteConfigs).
+                option(PRECOMBINE_FIELD_OPT_KEY,precombineField).
+                option(RECORDKEY_FIELD_OPT_KEY, recordKey).
+                option(PARTITIONPATH_FIELD_OPT_KEY, Constants.HudiTableMeta.PARTITION_KEY).
+                option(TABLE_NAME, hudiTableName).
+                option(DataSourceWriteOptions.TABLE_NAME_OPT_KEY,hudiTableName).
+                option(DataSourceWriteOptions.HIVE_STYLE_PARTITIONING_OPT_KEY,true).
+              /*
+                关闭hive数据结构实时同步，新增数据量大时，每次都去连hive metastore，怕扛不住
+                option(DataSourceWriteOptions.HIVE_TABLE_OPT_KEY, hudiTableName).
+                option(DataSourceWriteOptions.META_SYNC_ENABLED_OPT_KEY, true).
+                option(DataSourceWriteOptions.HIVE_DATABASE_OPT_KEY, "default").
+                option(DataSourceWriteOptions.HIVE_USER_OPT_KEY, "hive").
+                option(DataSourceWriteOptions.HIVE_PASS_OPT_KEY, "hive").
+                option(DataSourceWriteOptions.HIVE_URL_OPT_KEY, "jdbc:hive2://192.168.16.181:10000").
+                option(DataSourceWriteOptions.HIVE_PARTITION_FIELDS_OPT_KEY,Constants.HudiTableMeta.PARTITION_KEY).
+                */
+                mode(SaveMode.Append).
+                save(realHudiTablePath)
+            })
+          }
         }
+
       } catch {
         case exception: Exception => print(exception)
       }
