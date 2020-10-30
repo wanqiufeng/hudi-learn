@@ -64,12 +64,12 @@ object TestHudi3 {
     //System.setProperty("hadoop.home.dir", "C:\\Users\\wanqi\\DevTools\\hadoop-dev")
     //加上述代码的原因：https://stackoverflow.com/questions/35652665/java-io-ioexception-could-not-locate-executable-null-bin-winutils-exe-in-the-ha
 
-    val tableName = "hudi_hive_test19"
+    val tableName = "hudi_hive_test23"
     //val basePath = "file:/Users/apple/Temp/hudi_data"
-    val basePath = "hdfs://192.168.16.181:8020/hudi_hive_test19"
+    val basePath = "hdfs://192.168.16.181:8020/hudi_hive_test23"
     val dataGen = new DataGenerator
     //val inserts = convertToStringList(dataGen.generateInserts(10))
-    val inserts = List("{\n    \"volume\": 456506,\n    \"symbol\": \"FB\",\n    \"ts\": \"2018-08-31 09:30:00\",\n    \"month\": \"08\",\n    \"high\": 177.5,\n    \"low\": 176.465,\n    \"key\": \"FB_2018-08-31 09\",\n    \"year\": 2018,\n    \"date\": 1603877906000,\n    \"close\": 176.83,\n    \"open\": 177.29,\n    \"day\": \"31\",\n \"add_clo\": \"haha\"}")
+    val inserts = List("{\n    \"volume\": 456506,\n    \"symbol\": \"FB\",\n    \"ts\": \"2018-08-31 09:30:00\",\n    \"month\": \"08\",\n    \"high\": 177.5,\n    \"low\": 176.465,\n    \"key\": \"FB_2018-08-31 09\",\n    \"year\": 2018,\n    \"date\": \"2018/08/31\",\n    \"close\": 176.83,\n    \"open\": 177.29,\n    \"day\": \"31\",\n \"add_clo\": \"haha\"}")
     val df = spark.read.json(spark.sparkContext.parallelize(inserts, 2))
     df.write.format("hudi").
       //option(OPERATION_OPT_KEY,"delete").
@@ -78,7 +78,7 @@ object TestHudi3 {
       option(RECORDKEY_FIELD_OPT_KEY, "key").
       option(PARTITIONPATH_FIELD_OPT_KEY, "date").
       //option(HIVE_PARTITION_EXTRACTOR_CLASS_OPT_KEY,"").
-      option(TABLE_NAME, tableName).
+      option(TABLE_NAME, "hudi_hive_test24").
       option(DataSourceWriteOptions.TABLE_NAME_OPT_KEY,tableName).
       option(DataSourceWriteOptions.HIVE_TABLE_OPT_KEY, tableName).
       //option(DataSourceWriteOptions.HIVE_SYNC_ENABLED_OPT_KEY, true).

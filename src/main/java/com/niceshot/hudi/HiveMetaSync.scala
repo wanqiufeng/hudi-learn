@@ -1,18 +1,13 @@
 package com.niceshot.hudi
 
-import java.util
-
+import com.niceshot.hudi.constant.Constants
+import com.niceshot.hudi.util.ConfigParser
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hive.conf.HiveConf
-import org.apache.hudi.DataSourceWriteOptions
-import org.apache.hudi.DataSourceWriteOptions.{HIVE_BASE_FILE_FORMAT_OPT_KEY, HIVE_DATABASE_OPT_KEY, HIVE_PARTITION_EXTRACTOR_CLASS_OPT_KEY, HIVE_PARTITION_FIELDS_OPT_KEY, HIVE_PASS_OPT_KEY, HIVE_TABLE_OPT_KEY, HIVE_URL_OPT_KEY, HIVE_USER_OPT_KEY, HIVE_USE_JDBC_OPT_KEY, HIVE_USE_PRE_APACHE_INPUT_FORMAT_OPT_KEY}
-import org.apache.hudi.config.{HoodieIndexConfig, HoodieWriteConfig}
+import org.apache.hudi.DataSourceWriteOptions._
 import org.apache.hudi.hive.{HiveSyncConfig, HiveSyncTool}
-import org.apache.hudi.index.HoodieIndex
-import org.apache.hudi.keygen.SimpleKeyGenerator
 import org.apache.spark.api.java.JavaSparkContext
-import org.apache.spark.sql.SaveMode._
-import org.apache.spark.sql.{SaveMode, SparkSession}
+import org.apache.spark.sql.SparkSession
 
 import scala.collection.JavaConverters.bufferAsJavaListConverter
 import scala.collection.mutable.ListBuffer
@@ -21,23 +16,25 @@ import scala.collection.mutable.ListBuffer
  * @author created by chenjun at 2020-10-29 15:42
  *
  */
-object HiveSync {
+object HiveMetaSync {
   def main(args: Array[String]): Unit = {
+
+    val config = ConfigParser.parseHiveMetaSyncConfig(args)
     //构造sparksession对象
     val spark = SparkSession
       .builder
-      .appName("delta hiveSync")
+      .appName("hudi2hiveMetaSync_"+config.getHiveDbName+"__"+config.getHiveTableName)
       .config("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
       .master("local[3]")
       .getOrCreate()
 
-    val basePath = new Path("hdfs://192.168.16.181:8020/hudi_data/hudi_hive_test33")
+    val basePath = new Path(config.getHudiTablePath)
     val parameters = Map(
       "hoodie.datasource.write.insert.drop.duplicates"->"false",
       "hoodie.datasource.hive_sync.database"->"default",
       "hoodie.datasource.write.row.writer.enable"->"false",
       "hoodie.insert.shuffle.parallelism"->"2",
-      "path"->"hdfs://192.168.16.181:8020/hudi_data/hudi_hive_test33",
+      "path"->config.getHudiTablePath,
       "hoodie.datasource.write.precombine.field"->"id",
       "hoodie.datasource.hive_sync.partition_fields"->"_partition_date",
       "hoodie.datasource.write.payload.class"->"org.apache.hudi.common.model.OverwriteWithLatestAvroPayload",
@@ -46,25 +43,25 @@ object HiveSync {
       "hoodie.datasource.meta.sync.enable"->"true",
       "hoodie.datasource.write.streaming.retry.interval.ms"->"2000",
       "hoodie.datasource.hive_sync.base_file_format"->"PARQUET",
-      "hoodie.datasource.hive_sync.table"->"hudi_hive_test33",
+      "hoodie.datasource.hive_sync.table"->config.getHiveTableName,
       "hoodie.index.type"->"GLOBAL_BLOOM",
       "hoodie.datasource.write.streaming.ignore.failed.batch"->"true",
-      "hoodie.datasource.write.operation"->"upsert",
+      //"hoodie.datasource.write.operation"->"upsert",
       "hoodie.datasource.hive_sync.enable"->"true",
-      "hoodie.datasource.write.recordkey.field"->"id",
-      "hoodie.table.name"->"hudi_hive_test33",
-      "hoodie.datasource.hive_sync.jdbcurl"->"jdbc:hive2://192.168.16.181:10000",
+      //"hoodie.datasource.write.recordkey.field"->"id",
+      //"hoodie.table.name"->"hudi_hive_test33",
+      "hoodie.datasource.hive_sync.jdbcurl"->config.getHiveJdbcUrl,
       "hoodie.datasource.write.table.type"->"COPY_ON_WRITE",
       "hoodie.datasource.write.hive_style_partitioning"->"true",
       "hoodie.bloom.index.update.partition.path"->"true",
-      "hoodie.datasource.hive_sync.username"->"hive",
+      "hoodie.datasource.hive_sync.username"->config.getHiveUser,
       "hoodie.datasource.write.streaming.retry.count"->"3",
       "hoodie.datasource.compaction.async.enable"->"true",
-      "hoodie.datasource.hive_sync.password"->"hive",
+      "hoodie.datasource.hive_sync.password"->config.getHivePwd,
       "hoodie.datasource.write.keygenerator.class"->"org.apache.hudi.keygen.SimpleKeyGenerator",
       "hoodie.upsert.shuffle.parallelism"->"2",
       "hoodie.meta.sync.client.tool.class"->"org.apache.hudi.hive.HiveSyncTool",
-      "hoodie.datasource.write.partitionpath.field"->"_partition_date",
+      "hoodie.datasource.write.partitionpath.field"-> Constants.HudiTableMeta.PARTITION_KEY,
       "hoodie.datasource.write.commitmeta.key.prefix"->"_"
     )
     val hiveSyncConfig: HiveSyncConfig = buildSyncConfig(basePath, parameters)

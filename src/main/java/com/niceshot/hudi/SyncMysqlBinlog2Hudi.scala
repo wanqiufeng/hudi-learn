@@ -1,0 +1,118 @@
+package com.niceshot.hudi
+
+import com.niceshot.hudi.config.HudiSaveApplicationConfig
+import com.niceshot.hudi.constant.Constants
+import com.niceshot.hudi.util.{CanalDataParser, ConfigParser}
+import org.apache.hudi.DataSourceWriteOptions
+import org.apache.hudi.DataSourceWriteOptions.{PARTITIONPATH_FIELD_OPT_KEY, PRECOMBINE_FIELD_OPT_KEY, RECORDKEY_FIELD_OPT_KEY, _}
+import org.apache.hudi.QuickstartUtils.getQuickstartWriteConfigs
+import org.apache.hudi.com.beust.jcommander.JCommander
+import org.apache.hudi.config.HoodieWriteConfig.TABLE_NAME
+import org.apache.spark.SparkConf
+import org.apache.spark.sql.{DataFrame, SaveMode, SparkSession}
+import org.apache.spark.streaming.kafka010.ConsumerStrategies.Subscribe
+import org.apache.spark.streaming.kafka010.LocationStrategies.PreferConsistent
+import org.apache.spark.streaming.kafka010._
+import org.apache.spark.streaming.{Seconds, StreamingContext}
+
+import scala.collection.JavaConversions._
+
+/**
+ * @author created by chenjun at 2020-10-14 15:32
+ *
+ */
+object SyncMysqlBinlog2Hudi {
+
+  def main(args: Array[String]): Unit = {
+    val config = ConfigParser.parseHudiDataSaveConfig(args)
+    val appName = "hudi_sync_"+config.getSyncDbName+"__"+config.getSyncTableName
+    val conf = new SparkConf()
+      .setAppName(appName)
+      .setMaster("local[4]")
+      .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
+    val ssc = new StreamingContext(conf, Seconds(config.getDurationSeconds))
+    val spark = SparkSession.builder().config(conf).getOrCreate();
+
+    val kafkaParams = Map[String, Object](
+      "bootstrap.servers" -> config.getKafkaServer,
+      "key.deserializer" -> classOf[org.apache.kafka.common.serialization.StringDeserializer],
+      "value.deserializer" -> classOf[org.apache.kafka.common.serialization.StringDeserializer],
+      "group.id" -> config.getKafkaGroup,
+      "auto.offset.reset" -> "latest",
+      "enable.auto.commit" ->"false"
+    )
+    val topics = Array(config.getKafkaTopic)
+    val stream = KafkaUtils.createDirectStream[String, String](
+      ssc,
+      PreferConsistent,
+      Subscribe[String, String](topics, kafkaParams)
+    )
+    stream.map(record=>{
+      val hudiDataPackage = CanalDataParser.parse(record.value(),config.getCreateTimeStampKey)
+      hudiDataPackage
+    }).filter(record=> {
+      record != null && record.getDatabase == config.getSyncDbName && record.getTable == config.getSyncTableName
+    }).foreachRDD(recordRDD=> {
+      val offsetRanges = recordRDD.asInstanceOf[HasOffsetRanges].offsetRanges
+      try {
+        if(recordRDD.isEmpty()) {
+          //hudi同步到hive的工具，默认会基于timeline中最近一次的 complete instant的格式，去生成hive表的各格式。如果你最近插入了一条空数据，那创建的hive表将没有字段
+          print("空结果集，不做操作")
+        } else {
+          val hasNotDelete = recordRDD.filter(hudiData=> {
+            hudiData.getOperationType == Constants.HudiOperationType.DELETE
+          }).isEmpty()
+          print("是否没有删除操作:"+hasNotDelete)
+          if(hasNotDelete) {
+            //如果没有删除操作，则走批量upsert
+            val upsertData = recordRDD.map(hudiData=>{hudiData.getData}).flatMap(data=>data)
+            val df = spark.read.json(upsertData)
+
+            hudiDataUpsertOrDelete(config,df,UPSERT_OPERATION_OPT_VAL)
+          } else {
+            //如果有删除操作，那么必须把数据拉回本地，进行操作
+            val localData = recordRDD.collect()
+            localData.foreach(record=> {
+              val df = spark.read.json(spark.sparkContext.parallelize(record.getData, 2))
+              hudiDataUpsertOrDelete(config,df,record.getOperationType)
+            })
+          }
+        }
+      } catch {
+        case exception: Exception => print(exception)
+      } finally {
+        stream.asInstanceOf[CanCommitOffsets].commitAsync(offsetRanges)
+      }
+
+    })
+    ssc.start()
+    ssc.awaitTermination()
+  }
+
+  private def hudiDataUpsertOrDelete(config: HudiSaveApplicationConfig,data:DataFrame,optType:String): Unit = {
+    data.write.format("hudi").
+      option(OPERATION_OPT_KEY,optType).
+      options(getQuickstartWriteConfigs).
+      option(PRECOMBINE_FIELD_OPT_KEY,config.getPrecombineKey).
+      option(RECORDKEY_FIELD_OPT_KEY, config.getPrimaryKey).
+      option(PARTITIONPATH_FIELD_OPT_KEY, Constants.HudiTableMeta.PARTITION_KEY).
+      option(TABLE_NAME, config.getStoreTableName).
+      option(DataSourceWriteOptions.HIVE_STYLE_PARTITIONING_OPT_KEY,true).
+      /*
+        关闭hive数据结构实时同步，新增数据量大时，每次都去连hive metastore，怕扛不住
+        option(DataSourceWriteOptions.TABLE_NAME_OPT_KEY,hudiTableName).
+        option(DataSourceWriteOptions.HIVE_TABLE_OPT_KEY, hudiTableName).
+        option(DataSourceWriteOptions.META_SYNC_ENABLED_OPT_KEY, true).
+        option(DataSourceWriteOptions.HIVE_DATABASE_OPT_KEY, "default").
+        option(DataSourceWriteOptions.HIVE_USER_OPT_KEY, "hive").
+        option(DataSourceWriteOptions.HIVE_PASS_OPT_KEY, "hive").
+        option(DataSourceWriteOptions.HIVE_URL_OPT_KEY, "jdbc:hive2://192.168.16.181:10000").
+        option(DataSourceWriteOptions.HIVE_PARTITION_FIELDS_OPT_KEY,Constants.HudiTableMeta.PARTITION_KEY).
+        */
+      mode(SaveMode.Append).
+      save(config.getRealSavePath)
+  }
+
+
+
+}
