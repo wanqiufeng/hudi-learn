@@ -1,7 +1,9 @@
 package com.niceshot.hudi.util;
 
+import com.niceshot.hudi.config.HiveImport2HudiConfig;
 import com.niceshot.hudi.config.HiveMetaSyncConfig;
-import com.niceshot.hudi.config.HudiSaveApplicationConfig;
+import com.niceshot.hudi.config.CanalKafkaImport2HudiConfig;
+import com.niceshot.hudi.config.HudiTableSaveConfig;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hudi.com.beust.jcommander.JCommander;
 
@@ -9,19 +11,16 @@ import org.apache.hudi.com.beust.jcommander.JCommander;
  * @author created by chenjun at 2020-10-30 14:59
  */
 public class ConfigParser {
-    public static HudiSaveApplicationConfig parseHudiDataSaveConfig(String[] args) {
-        HudiSaveApplicationConfig config = new HudiSaveApplicationConfig();
+    public static CanalKafkaImport2HudiConfig parseHudiDataSaveConfig(String[] args) {
+        CanalKafkaImport2HudiConfig config = new CanalKafkaImport2HudiConfig();
         JCommander.newBuilder()
                 .addObject(config)
                 .build()
                 .parse(args);
         if(StringUtils.isBlank(config.getKafkaGroup())) {
             config.setKafkaGroup(buildKafkaGroup(config));
-        } if(StringUtils.isBlank(config.getStoreTableName())) {
-            config.setStoreTableName(buildHudiStoreTableName(config));
-        } if(StringUtils.isBlank(config.getRealSavePath())) {
-            config.setRealSavePath(buildRealSavePath(config));
         }
+        setDefaultValueForHudiSave(config);
         return config;
     }
 
@@ -34,26 +33,46 @@ public class ConfigParser {
         return config;
     }
 
-    private static String buildKafkaGroup(HudiSaveApplicationConfig config) {
+    public static HiveImport2HudiConfig parseHiveImport2HudiConfig(String[] args) {
+        HiveImport2HudiConfig config = new HiveImport2HudiConfig();
+        JCommander.newBuilder()
+                .addObject(config)
+                .build()
+                .parse(args);
+        setDefaultValueForHudiSave(config);
+        return config;
+    }
+
+
+    private static void setDefaultValueForHudiSave(HudiTableSaveConfig config) {
+        if(StringUtils.isBlank(config.getStoreTableName())) {
+            config.setStoreTableName(buildHudiStoreTableName(config));
+        }
+        if(StringUtils.isBlank(config.getRealSavePath())) {
+            config.setRealSavePath(buildRealSavePath(config));
+        }
+    }
+
+    private static String buildKafkaGroup(CanalKafkaImport2HudiConfig config) {
         StringBuilder stringBuilder = new StringBuilder();
         stringBuilder.append("hudi_");
-        stringBuilder.append(config.getSyncDbName());
+        stringBuilder.append(config.getMappingMysqlDbName());
         stringBuilder.append("__");
-        stringBuilder.append(config.getSyncTableName());
+        stringBuilder.append(config.getMappingMysqlTableName());
         return stringBuilder.toString();
     }
 
 
 
-    private static String buildHudiStoreTableName(HudiSaveApplicationConfig config) {
+    private static String buildHudiStoreTableName(HudiTableSaveConfig config) {
         StringBuilder stringBuilder = new StringBuilder();
-        stringBuilder.append(config.getSyncDbName());
+        stringBuilder.append(config.getMappingMysqlDbName());
         stringBuilder.append("__");
-        stringBuilder.append(config.getSyncTableName());
+        stringBuilder.append(config.getMappingMysqlTableName());
         return stringBuilder.toString();
     }
 
-    private static String buildRealSavePath(HudiSaveApplicationConfig config) {
+    private static String buildRealSavePath(HudiTableSaveConfig config) {
         StringBuilder stringBuilder = new StringBuilder();
         stringBuilder.append(config.getBaseSavePath());
         if(!config.getBaseSavePath().endsWith("/")) {

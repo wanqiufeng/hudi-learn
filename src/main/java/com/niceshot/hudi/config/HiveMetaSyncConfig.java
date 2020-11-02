@@ -2,10 +2,12 @@ package com.niceshot.hudi.config;
 
 import org.apache.hudi.com.beust.jcommander.Parameter;
 
+import java.io.Serializable;
+
 /**
  * @author created by chenjun at 2020-10-30 14:22
  */
-public class HiveMetaSyncConfig {
+public class HiveMetaSyncConfig implements Serializable {
     @Parameter(names = {"--hive-db-name"},description = "the hive db will sync to ")
     private String hiveDbName;
     @Parameter(names = {"--hive-table-name"},description = "the hive table will create")

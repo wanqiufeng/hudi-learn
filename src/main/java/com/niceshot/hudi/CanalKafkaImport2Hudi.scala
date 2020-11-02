@@ -1,6 +1,6 @@
 package com.niceshot.hudi
 
-import com.niceshot.hudi.config.HudiSaveApplicationConfig
+import com.niceshot.hudi.config.CanalKafkaImport2HudiConfig
 import com.niceshot.hudi.constant.Constants
 import com.niceshot.hudi.util.{CanalDataParser, ConfigParser}
 import org.apache.hudi.DataSourceWriteOptions
@@ -16,16 +16,16 @@ import org.apache.spark.streaming.kafka010._
 import org.apache.spark.streaming.{Seconds, StreamingContext}
 
 import scala.collection.JavaConversions._
+import scala.util.control.Breaks.{break, breakable}
 
 /**
  * @author created by chenjun at 2020-10-14 15:32
  *
  */
-object SyncMysqlBinlog2Hudi {
-
+object CanalKafkaImport2Hudi {
   def main(args: Array[String]): Unit = {
     val config = ConfigParser.parseHudiDataSaveConfig(args)
-    val appName = "hudi_sync_"+config.getSyncDbName+"__"+config.getSyncTableName
+    val appName = "hudi_sync_"+config.getMappingMysqlDbName+"__"+config.getMappingMysqlTableName
     val conf = new SparkConf()
       .setAppName(appName)
       .setMaster("local[4]")
@@ -47,31 +47,24 @@ object SyncMysqlBinlog2Hudi {
       PreferConsistent,
       Subscribe[String, String](topics, kafkaParams)
     )
-    stream.map(record=>{
-      val hudiDataPackage = CanalDataParser.parse(record.value(),config.getCreateTimeStampKey)
-      hudiDataPackage
-    }).filter(record=> {
-      record != null && record.getDatabase == config.getSyncDbName && record.getTable == config.getSyncTableName
-    }).foreachRDD(recordRDD=> {
+    stream.foreachRDD(recordRDD=> {
       val offsetRanges = recordRDD.asInstanceOf[HasOffsetRanges].offsetRanges
       try {
-        if(recordRDD.isEmpty()) {
-          //hudi同步到hive的工具，默认会基于timeline中最近一次的 complete instant的格式，去生成hive表的各格式。如果你最近插入了一条空数据，那创建的hive表将没有字段
-          print("空结果集，不做操作")
+        val needOperationData = recordRDD.map(consumerRecord=>CanalDataParser.parse(consumerRecord.value(),config.getCreateTimeStampKey))
+          .filter(consumerRecord=>consumerRecord != null && consumerRecord.getDatabase == config.getMappingMysqlDbName && consumerRecord.getTable == config.getMappingMysqlTableName)
+        if(needOperationData.isEmpty()) {
+          println("空结果集，不做操作")
         } else {
-          val hasNotDelete = recordRDD.filter(hudiData=> {
-            hudiData.getOperationType == Constants.HudiOperationType.DELETE
-          }).isEmpty()
-          print("是否没有删除操作:"+hasNotDelete)
+          println("结果集不为空，开始操作")
+          val hasNotDelete = needOperationData.filter(record=>record.getOperationType ==Constants.HudiOperationType.DELETE).isEmpty()
           if(hasNotDelete) {
             //如果没有删除操作，则走批量upsert
-            val upsertData = recordRDD.map(hudiData=>{hudiData.getData}).flatMap(data=>data)
+            val upsertData = needOperationData.map(hudiData=>{hudiData.getData}).flatMap(data=>data)
             val df = spark.read.json(upsertData)
-
             hudiDataUpsertOrDelete(config,df,UPSERT_OPERATION_OPT_VAL)
           } else {
             //如果有删除操作，那么必须把数据拉回本地，进行操作
-            val localData = recordRDD.collect()
+            val localData = needOperationData.collect()
             localData.foreach(record=> {
               val df = spark.read.json(spark.sparkContext.parallelize(record.getData, 2))
               hudiDataUpsertOrDelete(config,df,record.getOperationType)
@@ -89,7 +82,7 @@ object SyncMysqlBinlog2Hudi {
     ssc.awaitTermination()
   }
 
-  private def hudiDataUpsertOrDelete(config: HudiSaveApplicationConfig,data:DataFrame,optType:String): Unit = {
+  private def hudiDataUpsertOrDelete(config: CanalKafkaImport2HudiConfig, data:DataFrame, optType:String): Unit = {
     data.write.format("hudi").
       option(OPERATION_OPT_KEY,optType).
       options(getQuickstartWriteConfigs).
@@ -112,7 +105,4 @@ object SyncMysqlBinlog2Hudi {
       mode(SaveMode.Append).
       save(config.getRealSavePath)
   }
-
-
-
 }

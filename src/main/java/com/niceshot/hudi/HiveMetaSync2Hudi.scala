@@ -16,7 +16,7 @@ import scala.collection.mutable.ListBuffer
  * @author created by chenjun at 2020-10-29 15:42
  *
  */
-object HiveMetaSync {
+object HiveMetaSync2Hudi {
   def main(args: Array[String]): Unit = {
 
     val config = ConfigParser.parseHiveMetaSyncConfig(args)
@@ -31,7 +31,7 @@ object HiveMetaSync {
     val basePath = new Path(config.getHudiTablePath)
     val parameters = Map(
       "hoodie.datasource.write.insert.drop.duplicates"->"false",
-      "hoodie.datasource.hive_sync.database"->"default",
+      "hoodie.datasource.hive_sync.database"->config.getHiveDbName,
       "hoodie.datasource.write.row.writer.enable"->"false",
       "hoodie.insert.shuffle.parallelism"->"2",
       "path"->config.getHudiTablePath,

@@ -76,6 +76,12 @@ public class CanalDataParser {
                 .collect(Collectors.toList());
     }
 
+    /** 将结原始数据中指定的创建时间戳加工成，分区元数据字段：Constants.HudiTableMeta.PARTITION_KEY
+     * @param dataMap
+     * @param partitionDateField
+     * @param mysqlType
+     * @return
+     */
     private static Map<String,String> addHudiRecognizePartition(Map<String, String> dataMap, String partitionDateField, Map<String, Integer> mysqlType) {
         String partitionOriginalValue = dataMap.get(partitionDateField);
         Integer sqlType = mysqlType.get(partitionDateField);
