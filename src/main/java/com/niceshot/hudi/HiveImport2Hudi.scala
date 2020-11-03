@@ -6,6 +6,7 @@ import com.niceshot.hudi.util.ConfigParser
 import org.apache.hudi.DataSourceWriteOptions
 import org.apache.hudi.DataSourceWriteOptions.{OPERATION_OPT_KEY, PARTITIONPATH_FIELD_OPT_KEY, PRECOMBINE_FIELD_OPT_KEY, RECORDKEY_FIELD_OPT_KEY, UPSERT_OPERATION_OPT_VAL}
 import org.apache.hudi.QuickstartUtils.getQuickstartWriteConfigs
+import org.apache.hudi.config.HoodieCompactionConfig
 import org.apache.hudi.config.HoodieWriteConfig.TABLE_NAME
 import org.apache.spark.sql.{DataFrame, SaveMode, SparkSession}
 
@@ -37,6 +38,8 @@ object HiveImport2Hudi {
       option(RECORDKEY_FIELD_OPT_KEY, config.getPrimaryKey).
       option(PARTITIONPATH_FIELD_OPT_KEY, Constants.HudiTableMeta.PARTITION_KEY).
       option(TABLE_NAME, config.getStoreTableName).
+      option(HoodieCompactionConfig.AUTO_CLEAN_PROP,true).
+      option(HoodieCompactionConfig.ASYNC_CLEAN_PROP,true).
       option(DataSourceWriteOptions.HIVE_STYLE_PARTITIONING_OPT_KEY,true).
       mode(SaveMode.Append).
       save(config.getRealSavePath)
