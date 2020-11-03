@@ -6,8 +6,7 @@ import com.niceshot.hudi.util.{CanalDataParser, ConfigParser}
 import org.apache.hudi.DataSourceWriteOptions
 import org.apache.hudi.DataSourceWriteOptions.{PARTITIONPATH_FIELD_OPT_KEY, PRECOMBINE_FIELD_OPT_KEY, RECORDKEY_FIELD_OPT_KEY, _}
 import org.apache.hudi.QuickstartUtils.getQuickstartWriteConfigs
-import org.apache.hudi.com.beust.jcommander.JCommander
-import org.apache.hudi.config.{HoodieCompactionConfig, HoodieWriteConfig}
+import org.apache.hudi.config.HoodieCompactionConfig
 import org.apache.hudi.config.HoodieWriteConfig.TABLE_NAME
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.{DataFrame, SaveMode, SparkSession}
@@ -17,7 +16,6 @@ import org.apache.spark.streaming.kafka010._
 import org.apache.spark.streaming.{Seconds, StreamingContext}
 
 import scala.collection.JavaConversions._
-import scala.util.control.Breaks.{break, breakable}
 
 /**
  * @author created by chenjun at 2020-10-14 15:32
@@ -91,8 +89,6 @@ object CanalKafkaImport2Hudi {
       option(RECORDKEY_FIELD_OPT_KEY, config.getPrimaryKey).
       option(PARTITIONPATH_FIELD_OPT_KEY, Constants.HudiTableMeta.PARTITION_KEY).
       option(TABLE_NAME, config.getStoreTableName).
-      option(HoodieCompactionConfig.AUTO_CLEAN_PROP,true).
-      option(HoodieCompactionConfig.ASYNC_CLEAN_PROP,true).
       option(DataSourceWriteOptions.HIVE_STYLE_PARTITIONING_OPT_KEY,true).
       /*
         关闭hive数据结构实时同步，新增数据量大时，每次都去连hive metastore，怕扛不住

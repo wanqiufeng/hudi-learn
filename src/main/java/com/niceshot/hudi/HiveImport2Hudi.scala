@@ -38,8 +38,6 @@ object HiveImport2Hudi {
       option(RECORDKEY_FIELD_OPT_KEY, config.getPrimaryKey).
       option(PARTITIONPATH_FIELD_OPT_KEY, Constants.HudiTableMeta.PARTITION_KEY).
       option(TABLE_NAME, config.getStoreTableName).
-      option(HoodieCompactionConfig.AUTO_CLEAN_PROP,true).
-      option(HoodieCompactionConfig.ASYNC_CLEAN_PROP,true).
       option(DataSourceWriteOptions.HIVE_STYLE_PARTITIONING_OPT_KEY,true).
       mode(SaveMode.Append).
       save(config.getRealSavePath)

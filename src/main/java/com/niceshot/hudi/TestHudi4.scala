@@ -38,10 +38,10 @@ object TestHudi4 {
     val tripsSnapshotDF = spark.
       read.
       format("hudi").
-      load("hdfs://192.168.16.181:8020/hudi_data/test__test_binglog" + "/*/*/*/*")
+      load("hdfs://192.168.16.181:8020/hudi_data1/test__test_binglog" + "/*/*/*/*")
     //load(basePath) use "/partitionKey=partitionValue" folder structure for Spark auto partition discovery
     tripsSnapshotDF.createOrReplaceTempView("hudi_trips_snapshot")
     println("first query===========>")
-    spark.sql("select * from  hudi_trips_snapshot ").show()
+    spark.sql("select count(*) from  hudi_trips_snapshot").show()
   }
 }
