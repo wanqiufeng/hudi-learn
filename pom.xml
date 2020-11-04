@@ -17,7 +17,7 @@
                     <target>8</target>
                 </configuration>
             </plugin>
-            <plugin>
+            <!--<plugin>
                 <artifactId>maven-assembly-plugin</artifactId>
                 <configuration>
                     <archive>
@@ -25,22 +25,22 @@
                             <mainClass>com.niceshot.hudi.CanalKafkaImport2Hudi</mainClass>
                         </manifest>
                     </archive>
-                    <finalName>hudi-canal-import-${version}</finalName>
+                    &lt;!&ndash;<finalName>hudi-canal-import-${version}</finalName>&ndash;&gt;
                     <descriptorRefs>
                         <descriptorRef>jar-with-dependencies</descriptorRef>
                     </descriptorRefs>
                 </configuration>
                 <executions>
                     <execution>
-                        <id>make-assembly</id> <!-- this is used for inheritance merges -->
-                        <phase>package</phase> <!-- bind to the packaging phase -->
+                        <id>make-assembly</id> &lt;!&ndash; this is used for inheritance merges &ndash;&gt;
+                        <phase>package</phase> &lt;!&ndash; bind to the packaging phase &ndash;&gt;
                         <goals>
                             <goal>single</goal>
                         </goals>
                     </execution>
                 </executions>
-            </plugin>
-            <plugin>
+            </plugin>-->
+            <!--<plugin>
                 <artifactId>maven-assembly-plugin</artifactId>
                 <configuration>
                     <archive>
@@ -55,8 +55,8 @@
                 </configuration>
                 <executions>
                     <execution>
-                        <id>make-assembly</id> <!-- this is used for inheritance merges -->
-                        <phase>package</phase> <!-- bind to the packaging phase -->
+                        <id>make-assembly</id> &lt;!&ndash; this is used for inheritance merges &ndash;&gt;
+                        <phase>package</phase> &lt;!&ndash; bind to the packaging phase &ndash;&gt;
                         <goals>
                             <goal>single</goal>
                         </goals>
@@ -78,14 +78,14 @@
                 </configuration>
                 <executions>
                     <execution>
-                        <id>make-assembly</id> <!-- this is used for inheritance merges -->
-                        <phase>package</phase> <!-- bind to the packaging phase -->
+                        <id>make-assembly</id> &lt;!&ndash; this is used for inheritance merges &ndash;&gt;
+                        <phase>package</phase> &lt;!&ndash; bind to the packaging phase &ndash;&gt;
                         <goals>
                             <goal>single</goal>
                         </goals>
                     </execution>
                 </executions>
-            </plugin>
+            </plugin>-->
         </plugins>
     </build>
 
@@ -94,7 +94,7 @@
             <groupId>org.apache.spark</groupId>
             <artifactId>spark-sql_2.11</artifactId>
             <version>2.4.4</version>
-            <!--<scope>provided</scope>-->
+            <scope>provided</scope>
             <exclusions>
                 <!--本地调试阶段先去掉，因为其中的类会跟hudi-spark-bundle_2.11中的类冲突，因为他们连包名都一致-->
                 <exclusion>
@@ -108,6 +108,8 @@
             <groupId>org.apache.hudi</groupId>
             <artifactId>hudi-spark-bundle_2.11</artifactId>
             <version>0.6.0</version>
+            <scope>provided</scope>
+            <!--need manual install in spark lib-->
             <exclusions>
                 <exclusion>
                     <groupId>org.apache.httpcomponents</groupId>
@@ -125,6 +127,7 @@
             <groupId>org.apache.spark</groupId>
             <artifactId>spark-hive_2.11</artifactId>
             <version>2.4.4</version>
+            <scope>provided</scope>
             <exclusions>
                 <exclusion>
                     <groupId>org.apache.hive</groupId>
@@ -136,7 +139,8 @@
             <groupId>org.apache.hive</groupId>
             <artifactId>hive-exec</artifactId>
             <version>1.1.0</version>
-            <!--<scope>provided</scope>-->
+            <scope>provided</scope>
+            <!--need manual install in spark lib-->
         </dependency>
         <!-- https://mvnrepository.com/artifact/org.apache.hive/hive-jdbc -->
         <dependency>
@@ -161,7 +165,7 @@
             <groupId>org.apache.spark</groupId>
             <artifactId>spark-streaming_2.11</artifactId>
             <version>2.4.4</version>
-            <!--<scope>provided</scope>-->
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>

@@ -25,7 +25,6 @@ object HiveMetaSync2Hudi {
       .builder
       .appName("hudi2hiveMetaSync_"+config.getHiveDbName+"__"+config.getHiveTableName)
       .config("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
-      .master("local[3]")
       .getOrCreate()
 
     val basePath = new Path(config.getHudiTablePath)

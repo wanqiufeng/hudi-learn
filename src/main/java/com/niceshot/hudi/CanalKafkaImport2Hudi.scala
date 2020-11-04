@@ -27,7 +27,6 @@ object CanalKafkaImport2Hudi {
     val appName = "hudi_sync_"+config.getMappingMysqlDbName+"__"+config.getMappingMysqlTableName
     val conf = new SparkConf()
       .setAppName(appName)
-      .setMaster("local[4]")
       .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
     val ssc = new StreamingContext(conf, Seconds(config.getDurationSeconds))
     val spark = SparkSession.builder().config(conf).getOrCreate();
