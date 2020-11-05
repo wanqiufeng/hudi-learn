@@ -3,10 +3,9 @@ package com.niceshot.hudi
 import com.niceshot.hudi.config.CanalKafkaImport2HudiConfig
 import com.niceshot.hudi.constant.Constants
 import com.niceshot.hudi.util.{CanalDataParser, ConfigParser}
+import com.typesafe.scalalogging.Logger
 import org.apache.hudi.DataSourceWriteOptions
 import org.apache.hudi.DataSourceWriteOptions.{PARTITIONPATH_FIELD_OPT_KEY, PRECOMBINE_FIELD_OPT_KEY, RECORDKEY_FIELD_OPT_KEY, _}
-import org.apache.hudi.QuickstartUtils.getQuickstartWriteConfigs
-import org.apache.hudi.config.HoodieCompactionConfig
 import org.apache.hudi.config.HoodieWriteConfig.TABLE_NAME
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.{DataFrame, SaveMode, SparkSession}
@@ -23,6 +22,7 @@ import scala.collection.JavaConversions._
  */
 object CanalKafkaImport2Hudi {
   def main(args: Array[String]): Unit = {
+    val logger = Logger("com.niceshot.hudi.CanalKafkaImport2Hudi")
     val config = ConfigParser.parseHudiDataSaveConfig(args)
     val appName = "hudi_sync_"+config.getMappingMysqlDbName+"__"+config.getMappingMysqlTableName
     val conf = new SparkConf()
@@ -51,9 +51,9 @@ object CanalKafkaImport2Hudi {
         val needOperationData = recordRDD.map(consumerRecord=>CanalDataParser.parse(consumerRecord.value(),config.getCreateTimeStampKey))
           .filter(consumerRecord=>consumerRecord != null && consumerRecord.getDatabase == config.getMappingMysqlDbName && consumerRecord.getTable == config.getMappingMysqlTableName)
         if(needOperationData.isEmpty()) {
-          println("空结果集，不做操作")
+          logger.info("空结果集，不做操作")
         } else {
-          println("结果集不为空，开始操作")
+          logger.info("结果集不为空，开始操作")
           val hasNotDelete = needOperationData.filter(record=>record.getOperationType ==Constants.HudiOperationType.DELETE).isEmpty()
           if(hasNotDelete) {
             //如果没有删除操作，则走批量upsert

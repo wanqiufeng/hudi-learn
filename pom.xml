@@ -178,5 +178,11 @@
             <artifactId>jcommander</artifactId>
             <version>1.71</version>
         </dependency>
+        <!-- https://mvnrepository.com/artifact/com.typesafe.scala-logging/scala-logging -->
+        <dependency>
+            <groupId>com.typesafe.scala-logging</groupId>
+            <artifactId>scala-logging_2.11</artifactId>
+            <version>3.9.2</version>
+        </dependency>
     </dependencies>
 </project>
