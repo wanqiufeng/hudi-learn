@@ -6,6 +6,7 @@ import com.google.common.collect.Sets;
 import com.niceshot.hudi.bo.CanalObject;
 import com.niceshot.hudi.bo.HudiHandleObject;
 import com.niceshot.hudi.constant.Constants;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.math3.util.Pair;
 
@@ -20,6 +21,7 @@ import java.util.stream.Collectors;
 /**
  * @author created by chenjun at 2020-10-23 18:10
  */
+@Slf4j
 public class CanalDataParser {
     private static Set<String> allowedOparation = Sets.newHashSet(Constants.CanalOperationType.INSERT, Constants.CanalOperationType.UPDATE, Constants.CanalOperationType.DELETE);
     private static Map<String, String> canalOperationMapping2HudiOperation = Maps.newHashMap();
@@ -96,49 +98,5 @@ public class CanalDataParser {
         }
         dataMap.put(Constants.HudiTableMeta.PARTITION_KEY,hudiPartitionFormatValue);
         return dataMap;
-    }
-
-    /**
-     * canal发送的data中，所有类型的值都是以字符串体现。该方法用于将字符串值，转化成对应的实际类型
-     *
-     * @param stringValueMap
-     * @param mysqlType
-     * @param partitionDateField
-     * @return
-     */
-    public static void main(String[] args) throws IOException {
-        //将原始数据读取成一个ObjectNode
-        //读取其中的data节点、type节点(insert 、update、delete的binlog)、mysqlType
-        //构建HudiHandleObject
-        String demoString = "{\n" +
-                "    \"data\": [{\n" +
-                "        \"id\": \"4\",\n" +
-                "        \"name\": \"test\",\n" +
-                "        \"new_col\": null\n" +
-                "    }],\n" +
-                "    \"database\": \"test\",\n" +
-                "    \"es\": 1603446001000,\n" +
-                "    \"id\": 200360,\n" +
-                "    \"isDdl\": false,\n" +
-                "    \"mysqlType\": {\n" +
-                "        \"id\": \"bigint(20)\",\n" +
-                "        \"name\": \"varchar(50)\",\n" +
-                "        \"new_col\": \"varchar(100)\"\n" +
-                "    },\n" +
-                "    \"old\": null,\n" +
-                "    \"pkNames\": [\"id\"],\n" +
-                "    \"sql\": \"\",\n" +
-                "    \"sqlType\": {\n" +
-                "        \"id\": -5,\n" +
-                "        \"name\": 12,\n" +
-                "        \"new_col\": 12\n" +
-                "    },\n" +
-                "    \"table\": \"test_binglog\",\n" +
-                "    \"ts\": 1603446001498,\n" +
-                "    \"type\": \"INSERT\"\n" +
-                "}";
-        // json操作相关资料：https://stackoverflow.com/questions/26190851/get-single-field-from-json-using-jackson
-        //HudiHandleObject parse = CanalDataParser.parse(demoString);
-        System.out.println("test");
     }
 }
