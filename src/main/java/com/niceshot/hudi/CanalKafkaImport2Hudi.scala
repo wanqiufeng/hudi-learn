@@ -48,7 +48,7 @@ object CanalKafkaImport2Hudi {
     stream.foreachRDD(recordRDD=> {
       val offsetRanges = recordRDD.asInstanceOf[HasOffsetRanges].offsetRanges
       try {
-        val needOperationData = recordRDD.map(consumerRecord=>CanalDataParser.parse(consumerRecord.value(),config.getCreateTimeStampKey))
+        val needOperationData = recordRDD.map(consumerRecord=>CanalDataParser.parse(consumerRecord.value(),config.getPartitionKey))
           .filter(consumerRecord=>consumerRecord != null && consumerRecord.getDatabase == config.getMappingMysqlDbName && consumerRecord.getTable == config.getMappingMysqlTableName)
         if(needOperationData.isEmpty()) {
           logger.info("空结果集，不做操作")
