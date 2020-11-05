@@ -37,8 +37,29 @@ public class DateUtils {
     }
 
 
-    public static void main(String[] args) {
-        System.out.println("最终输出"+millisecondsFormat(1603877906000L,DATE_FORMAT_YYYY_MM_DD_SLASH));
-        System.out.println("最终输出1"+dateStringFormat("2020-10-28 17:31:56",DATE_FORMAT_YYYY_MM_DD_hh_mm_ss,DATE_FORMAT_YYYY_MM_DD_SLASH));
+    public static boolean isValidDateTime(String inDate) {
+        SimpleDateFormat dateFormat = new SimpleDateFormat(DATE_FORMAT_YYYY_MM_DD_hh_mm_ss);
+        try {
+            dateFormat.parse(inDate.trim());
+        } catch (ParseException pe) {
+            return false;
+        }
+        return true;
     }
+
+    public static boolean isValidDate(String dateStr) {
+        SimpleDateFormat dateFormat = new SimpleDateFormat(DATE_FORMAT_YYYY_MM_DD);
+        try {
+            dateFormat.parse(dateStr.trim());
+        } catch (ParseException pe) {
+            return false;
+        }
+        return true;
+    }
+
+    public static void main(String[] args) {
+        System.out.println(isValidDate("2014-01-02"));
+        System.out.println(isValidDateTime("2014-01-02 22:01:33:023"));
+    }
+
 }
