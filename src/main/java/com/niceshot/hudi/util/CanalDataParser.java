@@ -54,7 +54,7 @@ public class CanalDataParser {
         result.setOperationType(canalOperationMapping2HudiOperation.get(canalObject.getType()));
         result.setDatabase(canalObject.getDatabase());
         result.setTable(canalObject.getTable());
-        result.setData(buildTypeData(canalObject,partitionDateField));
+        result.setData(canalObject.getData());
         return result;
     }
 
@@ -63,17 +63,14 @@ public class CanalDataParser {
     /**
      * 将canal中的map数据，转化成json List
      *
-     * @param canalObject
      * @param partitionDateField
      * @return
      */
-    private static List<String> buildTypeData(CanalObject canalObject, String partitionDateField) {
+    public static List<String> buildJsonDataString(List<Map<String,String>> data, String partitionDateField) {
         //找出其中的数据
         //从type中，找到其对应的数据类型
         //将这其value转化成对应对象
-        List<Map<String, String>> data = canalObject.getData();
-        Map<String, Integer> mysqlType = canalObject.getSqlType();
-        return data.stream().map(dataMap -> addHudiRecognizePartition(dataMap,partitionDateField,mysqlType))
+        return data.stream().map(dataMap -> addHudiRecognizePartition(dataMap,partitionDateField))
                 .map(stringObjectMap -> JsonUtils.toJson(stringObjectMap))
                 .collect(Collectors.toList());
     }
@@ -81,10 +78,9 @@ public class CanalDataParser {
     /** 将结原始数据中指定的创建时间戳加工成，分区元数据字段：Constants.HudiTableMeta.PARTITION_KEY
      * @param dataMap
      * @param partitionDateField
-     * @param mysqlType
      * @return
      */
-    private static Map<String,String> addHudiRecognizePartition(Map<String, String> dataMap, String partitionDateField, Map<String, Integer> mysqlType) {
+    private static Map<String,String> addHudiRecognizePartition(Map<String, String> dataMap, String partitionDateField) {
         String partitionOriginalValue = dataMap.get(partitionDateField);
         Preconditions.checkArgument(StringUtils.isNotBlank(partitionOriginalValue),"partition value can not be null");
         String hudiPartitionFormatValue;
