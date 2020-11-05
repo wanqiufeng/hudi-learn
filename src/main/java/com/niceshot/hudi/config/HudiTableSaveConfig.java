@@ -24,8 +24,8 @@ public class HudiTableSaveConfig implements Serializable {
     private String storeTableName;
     @Parameter(names = {"--primary-key"},description = "hive table's primary key ,default value is 'id'")
     private String primaryKey="id";
-    @Parameter(names = {"--create-time-stamp-key"},description = "hive table field used for hudi partition,has no default value.eg:'create_date'")
-    private String createTimeStampKey;
+    @Parameter(names = {"--partition-key"},description = "hive table field used for hudi partition,has no default value,prefer timestamp or dateime field.eg:'create_date'")
+    private String partitionKey;
     @Parameter(names = {"--precombine-key"},description = "use for hudi config 'hoodie.datasource.write.precombine.field'.default value is 'id'")
     private String precombineKey = "id";
 
@@ -77,12 +77,12 @@ public class HudiTableSaveConfig implements Serializable {
         this.primaryKey = primaryKey;
     }
 
-    public String getCreateTimeStampKey() {
-        return createTimeStampKey;
+    public String getPartitionKey() {
+        return partitionKey;
     }
 
-    public void setCreateTimeStampKey(String createTimeStampKey) {
-        this.createTimeStampKey = createTimeStampKey;
+    public void setPartitionKey(String partitionKey) {
+        this.partitionKey = partitionKey;
     }
 
     public String getPrecombineKey() {
