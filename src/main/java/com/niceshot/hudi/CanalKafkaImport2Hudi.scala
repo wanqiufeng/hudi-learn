@@ -83,7 +83,6 @@ object CanalKafkaImport2Hudi {
   private def hudiDataUpsertOrDelete(config: CanalKafkaImport2HudiConfig, data:DataFrame, optType:String): Unit = {
     data.write.format("hudi").
       option(OPERATION_OPT_KEY,optType).
-      options(getQuickstartWriteConfigs).
       option(PRECOMBINE_FIELD_OPT_KEY,config.getPrecombineKey).
       option(RECORDKEY_FIELD_OPT_KEY, config.getPrimaryKey).
       option(PARTITIONPATH_FIELD_OPT_KEY, Constants.HudiTableMeta.PARTITION_KEY).

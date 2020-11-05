@@ -31,7 +31,6 @@ object HiveImport2Hudi {
   private def hudiDataUpsert(config: HiveImport2HudiConfig,data:DataFrame): Unit = {
     data.write.format("hudi").
       option(OPERATION_OPT_KEY,UPSERT_OPERATION_OPT_VAL).
-      options(getQuickstartWriteConfigs).
       option(PRECOMBINE_FIELD_OPT_KEY,config.getPrecombineKey).
       option(RECORDKEY_FIELD_OPT_KEY, config.getPrimaryKey).
       option(PARTITIONPATH_FIELD_OPT_KEY, Constants.HudiTableMeta.PARTITION_KEY).
