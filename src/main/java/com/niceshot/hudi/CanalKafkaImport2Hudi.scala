@@ -74,7 +74,7 @@ object CanalKafkaImport2Hudi {
           }
         }
       } catch {
-        case exception: Exception => print(exception)
+        case exception: Exception => logger.error(exception.getMessage,exception)
       } finally {
         stream.asInstanceOf[CanCommitOffsets].commitAsync(offsetRanges)
       }
