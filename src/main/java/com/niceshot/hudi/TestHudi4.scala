@@ -42,6 +42,6 @@ object TestHudi4 {
     //load(basePath) use "/partitionKey=partitionValue" folder structure for Spark auto partition discovery
     tripsSnapshotDF.createOrReplaceTempView("hudi_trips_snapshot")
     println("first query===========>")
-    spark.sql("select count(*) from  hudi_trips_snapshot").show()
+    spark.sql("select * from  hudi_trips_snapshot").show()
   }
 }

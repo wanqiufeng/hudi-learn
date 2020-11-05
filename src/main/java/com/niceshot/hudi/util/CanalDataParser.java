@@ -86,15 +86,14 @@ public class CanalDataParser {
      */
     private static Map<String,String> addHudiRecognizePartition(Map<String, String> dataMap, String partitionDateField, Map<String, Integer> mysqlType) {
         String partitionOriginalValue = dataMap.get(partitionDateField);
-        Integer sqlType = mysqlType.get(partitionDateField);
         Preconditions.checkArgument(StringUtils.isNotBlank(partitionOriginalValue),"partition value can not be null");
         String hudiPartitionFormatValue;
-        if(Types.TIMESTAMP == sqlType) {
+        if(DateUtils.isValidDateTime(partitionOriginalValue)) {
             hudiPartitionFormatValue = DateUtils.dateStringFormat(partitionOriginalValue, DateUtils.DATE_FORMAT_YYYY_MM_DD_hh_mm_ss, DateUtils.DATE_FORMAT_YYYY_MM_DD_SLASH);
-        } else if(Types.DATE == sqlType) {
+        } else if(DateUtils.isValidDate(partitionOriginalValue)) {
             hudiPartitionFormatValue = DateUtils.dateStringFormat(partitionOriginalValue,DateUtils.DATE_FORMAT_YYYY_MM_DD,DateUtils.DATE_FORMAT_YYYY_MM_DD_SLASH);
         } else {
-            throw new RuntimeException("partition field must be any type of [datetime,timestamp,date] ,current sqlType is :"+sqlType);
+            throw new RuntimeException("partition field must be any type of [datetime,timestamp,date] ");
         }
         dataMap.put(Constants.HudiTableMeta.PARTITION_KEY,hudiPartitionFormatValue);
         return dataMap;
