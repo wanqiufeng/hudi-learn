@@ -24,7 +24,7 @@ object CanalKafkaImport2Hudi {
   def main(args: Array[String]): Unit = {
     val logger = Logger("com.niceshot.hudi.CanalKafkaImport2Hudi")
     val config = ConfigParser.parseHudiDataSaveConfig(args)
-    val appName = "hudi_sync_"+config.getMappingMysqlDbName+"__"+config.getMappingMysqlTableName
+    val appName = "hudi_sync_" + config.getMappingMysqlDbName + "__" + config.getMappingMysqlTableName
     val conf = new SparkConf()
       .setAppName(appName)
       .setMaster("local[4]")
@@ -38,7 +38,7 @@ object CanalKafkaImport2Hudi {
       "value.deserializer" -> classOf[org.apache.kafka.common.serialization.StringDeserializer],
       "group.id" -> config.getKafkaGroup,
       "auto.offset.reset" -> "latest",
-      "enable.auto.commit" ->"false"
+      "enable.auto.commit" -> "false"
     )
     val topics = Array(config.getKafkaTopic)
     val stream = KafkaUtils.createDirectStream[String, String](
@@ -46,27 +46,31 @@ object CanalKafkaImport2Hudi {
       PreferConsistent,
       Subscribe[String, String](topics, kafkaParams)
     )
-    stream.foreachRDD(recordRDD=> {
+    stream.foreachRDD(recordRDD => {
       val offsetRanges = recordRDD.asInstanceOf[HasOffsetRanges].offsetRanges
       try {
-        val needOperationData = recordRDD.map(consumerRecord=>CanalDataParser.parse(consumerRecord.value(),config.getPartitionKey))
-          .filter(consumerRecord=>consumerRecord != null && consumerRecord.getDatabase == config.getMappingMysqlDbName && consumerRecord.getTable == config.getMappingMysqlTableName)
-        if(needOperationData.isEmpty()) {
+        val needOperationData = recordRDD.map(consumerRecord => CanalDataParser.parse(consumerRecord.value(), config.getPartitionKey))
+          .filter(consumerRecord => consumerRecord != null && consumerRecord.getDatabase == config.getMappingMysqlDbName && consumerRecord.getTable == config.getMappingMysqlTableName)
+        if (needOperationData.isEmpty()) {
           logger.info("空结果集，不做操作")
         } else {
           logger.info("结果集不为空，开始操作")
-          val hasNotDelete = needOperationData.filter(record=>record.getOperationType ==Constants.HudiOperationType.DELETE).isEmpty()
-          if(hasNotDelete) {
+
+          val hasNotDelete = needOperationData.filter(record => record.getOperationType == Constants.HudiOperationType.DELETE).isEmpty()
+          if (hasNotDelete) {
             //如果没有删除操作，则走批量upsert
-            val upsertData = needOperationData.map(hudiData=>{hudiData.getData}).flatMap(data=>data)
+            val upsertData = needOperationData.map(hudiData => {
+              CanalDataParser.buildJsonDataString(hudiData.getData, config.getPartitionKey)
+            }).flatMap(data => data)
             val df = spark.read.json(upsertData)
-            hudiDataUpsertOrDelete(config,df,UPSERT_OPERATION_OPT_VAL)
+            hudiDataUpsertOrDelete(config, df, UPSERT_OPERATION_OPT_VAL)
           } else {
             //如果有删除操作，那么必须把数据拉回本地，进行操作
             val localData = needOperationData.collect()
-            localData.foreach(record=> {
-              val df = spark.read.json(spark.sparkContext.parallelize(record.getData, 2))
-              hudiDataUpsertOrDelete(config,df,record.getOperationType)
+            localData.foreach(record => {
+              val jsonDataList = CanalDataParser.buildJsonDataString(record.getData, config.getPartitionKey)
+              val df = spark.read.json(spark.sparkContext.parallelize(jsonDataList, 5))
+              hudiDataUpsertOrDelete(config, df, record.getOperationType)
             })
           }
         }
@@ -81,14 +85,14 @@ object CanalKafkaImport2Hudi {
     ssc.awaitTermination()
   }
 
-  private def hudiDataUpsertOrDelete(config: CanalKafkaImport2HudiConfig, data:DataFrame, optType:String): Unit = {
+  private def hudiDataUpsertOrDelete(config: CanalKafkaImport2HudiConfig, data: DataFrame, optType: String): Unit = {
     data.write.format("hudi").
-      option(OPERATION_OPT_KEY,optType).
-      option(PRECOMBINE_FIELD_OPT_KEY,config.getPrecombineKey).
+      option(OPERATION_OPT_KEY, optType).
+      option(PRECOMBINE_FIELD_OPT_KEY, config.getPrecombineKey).
       option(RECORDKEY_FIELD_OPT_KEY, config.getPrimaryKey).
       option(PARTITIONPATH_FIELD_OPT_KEY, Constants.HudiTableMeta.PARTITION_KEY).
       option(TABLE_NAME, config.getStoreTableName).
-      option(DataSourceWriteOptions.HIVE_STYLE_PARTITIONING_OPT_KEY,true).
+      option(DataSourceWriteOptions.HIVE_STYLE_PARTITIONING_OPT_KEY, true).
       /*
         关闭hive数据结构实时同步，新增数据量大时，每次都去连hive metastore，怕扛不住
         option(DataSourceWriteOptions.TABLE_NAME_OPT_KEY,hudiTableName).
