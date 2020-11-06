@@ -14,6 +14,8 @@ public class HiveImport2HudiConfig extends HudiTableSaveConfig implements Serial
     private String syncHiveTable;
     @Parameter(names = {"--hive-base-path"},description = "hive warehouse base location in hdfs.defaut is '/user/hive/warehouse'")
     private String hiveBasePath = "/user/hive/warehouse";
+    @Parameter(names = {"--hive-site-path"},description = "hive-site.xml path")
+    private String hiveConfFilePath;
 
     public String getSyncHiveDb() {
         return syncHiveDb;
@@ -37,5 +39,13 @@ public class HiveImport2HudiConfig extends HudiTableSaveConfig implements Serial
 
     public void setHiveBasePath(String hiveBasePath) {
         this.hiveBasePath = hiveBasePath;
+    }
+
+    public String getHiveConfFilePath() {
+        return hiveConfFilePath;
+    }
+
+    public void setHiveConfFilePath(String hiveConfFilePath) {
+        this.hiveConfFilePath = hiveConfFilePath;
     }
 }

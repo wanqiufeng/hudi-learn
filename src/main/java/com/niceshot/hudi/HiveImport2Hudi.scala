@@ -1,5 +1,7 @@
 package com.niceshot.hudi
 
+import java.io.File
+
 import com.niceshot.hudi.config.{CanalKafkaImport2HudiConfig, HiveImport2HudiConfig}
 import com.niceshot.hudi.constant.Constants
 import com.niceshot.hudi.util.ConfigParser
@@ -25,7 +27,7 @@ object HiveImport2Hudi {
       .enableHiveSupport()
       .master("local[10]")
       .getOrCreate()
-    spark.sparkContext.hadoopConfiguration.addResource()
+    spark.sparkContext.hadoopConfiguration.addResource(new File(config.getHiveConfFilePath).toURI.toURL)
     val df = spark.sqlContext.sql("""SELECT result.*,date_format(to_timestamp("""+config.getPartitionKey+""", "yyyy-MM-dd HH:mm:ss"), "yyyy/MM/dd") as """+ Constants.HudiTableMeta.PARTITION_KEY+""" from """+config.getSyncHiveDb+"""."""+config.getSyncHiveTable+""" as result""")
     df.show(10)
     hudiDataUpsert(config,df)
