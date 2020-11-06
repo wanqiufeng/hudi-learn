@@ -28,6 +28,8 @@ public class HudiTableSaveConfig implements Serializable {
     private String partitionKey;
     @Parameter(names = {"--precombine-key"},description = "use for hudi config 'hoodie.datasource.write.precombine.field'.default value is 'id'")
     private String precombineKey = "id";
+    @Parameter(names = {"--hive-site-path"},description = "hive-site.xml path")
+    private String hiveConfFilePath;
 
     public String getBaseSavePath() {
         return baseSavePath;
@@ -91,5 +93,13 @@ public class HudiTableSaveConfig implements Serializable {
 
     public void setPrecombineKey(String precombineKey) {
         this.precombineKey = precombineKey;
+    }
+
+    public String getHiveConfFilePath() {
+        return hiveConfFilePath;
+    }
+
+    public void setHiveConfFilePath(String hiveConfFilePath) {
+        this.hiveConfFilePath = hiveConfFilePath;
     }
 }

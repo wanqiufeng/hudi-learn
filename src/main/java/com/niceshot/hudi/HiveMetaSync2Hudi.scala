@@ -1,5 +1,7 @@
 package com.niceshot.hudi
 
+import java.io.File
+
 import com.niceshot.hudi.constant.Constants
 import com.niceshot.hudi.util.ConfigParser
 import org.apache.hadoop.fs.Path
@@ -68,6 +70,8 @@ object HiveMetaSync2Hudi {
     val hiveConf: HiveConf = new HiveConf()
     val jsc = new JavaSparkContext(spark.sparkContext)
     val hadoopConf = jsc.hadoopConfiguration()
+    hadoopConf.set("fs.hdfs.impl", "org.apache.hadoop.hdfs.DistributedFileSystem")
+    hadoopConf.addResource(new File(config.getHiveConfFilePath).toURI.toURL)
     val fs = basePath.getFileSystem(hadoopConf)
     hiveConf.addResource(fs.getConf)
     new HiveSyncTool(hiveSyncConfig, hiveConf, fs).syncHoodieTable()
