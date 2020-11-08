@@ -38,7 +38,7 @@ object HiveMetaSync2Hudi {
       "hoodie.insert.shuffle.parallelism"->"2",
       "path"->config.getHudiTablePath,
       "hoodie.datasource.write.precombine.field"->"id",
-      "hoodie.datasource.hive_sync.partition_fields"->Constants.HudiTableMeta.PARTITION_KEY,
+      "hoodie.datasource.hive_sync.partition_fields"->Constants.HudiTableMeta.HIVE_PARTITION_KEY, //跟hudi的分区字段区分开来，否则在hue中无法基于分区字段过滤
       "hoodie.datasource.write.payload.class"->"org.apache.hudi.common.model.OverwriteWithLatestAvroPayload",
       "hoodie.datasource.hive_sync.use_jdbc"->"true",
       "hoodie.datasource.hive_sync.partition_extractor_class"->"org.apache.hudi.hive.SlashEncodedDayPartitionValueExtractor",

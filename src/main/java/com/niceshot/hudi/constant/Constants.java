@@ -18,5 +18,6 @@ public interface Constants {
 
     interface HudiTableMeta {
         String PARTITION_KEY = "_partition_key";
+        String HIVE_PARTITION_KEY="hive_partition_key";
     }
 }
