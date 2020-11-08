@@ -37,7 +37,8 @@ object CanalKafkaImport2Hudi {
       "value.deserializer" -> classOf[org.apache.kafka.common.serialization.StringDeserializer],
       "group.id" -> config.getKafkaGroup,
       "auto.offset.reset" -> "latest",
-      "enable.auto.commit" -> "false"
+      "enable.auto.commit" -> "false",
+      "session.timeout.ms"->"30000"
     )
     val topics = Array(config.getKafkaTopic)
     val stream = KafkaUtils.createDirectStream[String, String](
@@ -48,29 +49,31 @@ object CanalKafkaImport2Hudi {
     stream.foreachRDD(recordRDD => {
       val offsetRanges = recordRDD.asInstanceOf[HasOffsetRanges].offsetRanges
       try {
-        val needOperationData = recordRDD.map(consumerRecord => CanalDataParser.parse(consumerRecord.value(), config.getPartitionKey))
+        val needOperationData = recordRDD.map(consumerRecord => CanalDataParser.parse(consumerRecord.value()))
           .filter(consumerRecord => consumerRecord != null && consumerRecord.getDatabase == config.getMappingMysqlDbName && consumerRecord.getTable == config.getMappingMysqlTableName)
         if (needOperationData.isEmpty()) {
           logger.info("空结果集，不做操作")
         } else {
           logger.info("结果集不为空，开始操作")
-
-          val hasNotDelete = needOperationData.filter(record => record.getOperationType == Constants.HudiOperationType.DELETE).isEmpty()
-          if (hasNotDelete) {
-            //如果没有删除操作，则走批量upsert
-            val upsertData = needOperationData.map(hudiData => {
+          val upsertDf = needOperationData.filter(record=>record.getOperationType != Constants.HudiOperationType.DELETE)
+          val deleteDf = needOperationData.filter(record=>record.getOperationType == Constants.HudiOperationType.DELETE)
+          if(!upsertDf.isEmpty()) {
+            logger.info("开始更新操作")
+            val upsertData = upsertDf.map(hudiData => {
               CanalDataParser.buildJsonDataString(hudiData.getData, config.getPartitionKey)
             }).flatMap(data => data)
             val df = spark.read.json(upsertData)
             hudiDataUpsertOrDelete(config, df, UPSERT_OPERATION_OPT_VAL)
-          } else {
-            //如果有删除操作，那么必须把数据拉回本地，进行操作
-            val localData = needOperationData.collect()
-            localData.foreach(record => {
-              val jsonDataList = CanalDataParser.buildJsonDataString(record.getData, config.getPartitionKey)
-              val df = spark.read.json(spark.sparkContext.parallelize(jsonDataList, 5))
-              hudiDataUpsertOrDelete(config, df, record.getOperationType)
-            })
+          }
+          //基于自增id的crud，insert和update一定是在delete之前。因为一旦delete后，你再insert, 一定是新的id，不会存在反复insert同一个id的情况
+          //所以可以把delete操作，统一放到最后操作
+          if(!deleteDf.isEmpty()) {
+            logger.info("开始删除操作")
+            val deleteData = deleteDf.map(hudiData => {
+              CanalDataParser.buildJsonDataString(hudiData.getData, config.getPartitionKey)
+            }).flatMap(data => data)
+            val df = spark.read.json(deleteData)
+            hudiDataUpsertOrDelete(config, df, DELETE_OPERATION_OPT_VAL)
           }
         }
       } catch {

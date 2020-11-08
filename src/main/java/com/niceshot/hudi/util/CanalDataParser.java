@@ -39,7 +39,7 @@ public class CanalDataParser {
      * @return
      * @throws IOException
      */
-    public static HudiHandleObject parse(String originalCanalData,String partitionDateField) throws IOException {
+    public static HudiHandleObject parse(String originalCanalData) throws IOException {
         Preconditions.checkNotNull(originalCanalData, "canal data can not be null");
         //直接一次性解析成对象, 从对象中提取出想要的东西
         //如果不为自己关注的操作类型，直接范围
@@ -70,9 +70,20 @@ public class CanalDataParser {
         //找出其中的数据
         //从type中，找到其对应的数据类型
         //将这其value转化成对应对象
-        return data.stream().map(dataMap -> addHudiRecognizePartition(dataMap,partitionDateField))
+        return data.stream()
+                .map(dataMap -> addHudiRecognizePartition(dataMap,partitionDateField))
+                .map(dataMap->toLowerCaseKeyMap(dataMap))
                 .map(stringObjectMap -> JsonUtils.toJson(stringObjectMap))
                 .collect(Collectors.toList());
+    }
+
+
+    private static Map<String, String> toLowerCaseKeyMap(Map<String, String> dataMap) {
+        Map<String, String> result = Maps.newHashMapWithExpectedSize(dataMap.size());
+        for(Map.Entry<String, String> entry:result.entrySet()) {
+            result.put(entry.getKey().toLowerCase(),entry.getValue());
+        }
+        return result;
     }
 
     /** 将结原始数据中指定的创建时间戳加工成，分区元数据字段：Constants.HudiTableMeta.PARTITION_KEY
