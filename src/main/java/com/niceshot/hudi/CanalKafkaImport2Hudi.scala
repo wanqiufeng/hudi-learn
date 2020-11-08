@@ -95,6 +95,7 @@ object CanalKafkaImport2Hudi {
       option(PARTITIONPATH_FIELD_OPT_KEY, Constants.HudiTableMeta.PARTITION_KEY).
       option(TABLE_NAME, config.getStoreTableName).
       option(DataSourceWriteOptions.HIVE_STYLE_PARTITIONING_OPT_KEY, true).
+      option(INSERT_DROP_DUPS_OPT_KEY,true).
       /*
         关闭hive数据结构实时同步，新增数据量大时，每次都去连hive metastore，怕扛不住
         option(DataSourceWriteOptions.TABLE_NAME_OPT_KEY,hudiTableName).
