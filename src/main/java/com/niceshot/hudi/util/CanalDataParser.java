@@ -80,7 +80,7 @@ public class CanalDataParser {
 
     private static Map<String, String> toLowerCaseKeyMap(Map<String, String> dataMap) {
         Map<String, String> result = Maps.newHashMapWithExpectedSize(dataMap.size());
-        for(Map.Entry<String, String> entry:result.entrySet()) {
+        for(Map.Entry<String, String> entry:dataMap.entrySet()) {
             result.put(entry.getKey().toLowerCase(),entry.getValue());
         }
         return result;
