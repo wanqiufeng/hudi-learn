@@ -38,7 +38,7 @@ object HiveMetaSync2Hudi {
       "hoodie.insert.shuffle.parallelism"->"2",
       "path"->config.getHudiTablePath,
       "hoodie.datasource.write.precombine.field"->"id",
-      "hoodie.datasource.hive_sync.partition_fields"->"_partition_date",
+      "hoodie.datasource.hive_sync.partition_fields"->Constants.HudiTableMeta.PARTITION_KEY,
       "hoodie.datasource.write.payload.class"->"org.apache.hudi.common.model.OverwriteWithLatestAvroPayload",
       "hoodie.datasource.hive_sync.use_jdbc"->"true",
       "hoodie.datasource.hive_sync.partition_extractor_class"->"org.apache.hudi.hive.SlashEncodedDayPartitionValueExtractor",
