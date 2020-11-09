@@ -29,7 +29,6 @@ import org.apache.spark.streaming.kafka010.ConsumerStrategies.Subscribe
  */
 object TestHudi4 {
   def main(args: Array[String]): Unit = {
-
     val conf = new SparkConf()
       .setAppName("Simple Application")
       .setMaster("local[1]")
@@ -42,6 +41,6 @@ object TestHudi4 {
     //load(basePath) use "/partitionKey=partitionValue" folder structure for Spark auto partition discovery
     tripsSnapshotDF.createOrReplaceTempView("hudi_trips_snapshot")
     println("first query===========>")
-    spark.sql("select * from  hudi_trips_snapshot").show()
+    spark.sql("select * from  hudi_trips_snapshot where id = ").show()
   }
 }

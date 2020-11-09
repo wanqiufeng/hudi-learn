@@ -53,7 +53,7 @@ object HiveMetaSync2Hudi {
       //"hoodie.datasource.write.recordkey.field"->"id",
       //"hoodie.table.name"->"hudi_hive_test33",
       "hoodie.datasource.hive_sync.jdbcurl"->config.getHiveJdbcUrl,
-      "hoodie.datasource.write.table.type"->"COPY_ON_WRITE",
+      "hoodie.datasource.write.table.type"->MOR_TABLE_TYPE_OPT_VAL,
       "hoodie.datasource.write.hive_style_partitioning"->"true",
       "hoodie.bloom.index.update.partition.path"->"true",
       "hoodie.datasource.hive_sync.username"->config.getHiveUser,
