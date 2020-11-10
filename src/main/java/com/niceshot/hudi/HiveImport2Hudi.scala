@@ -40,7 +40,6 @@ object HiveImport2Hudi {
       option(RECORDKEY_FIELD_OPT_KEY, config.getPrimaryKey).
       option(PARTITIONPATH_FIELD_OPT_KEY, Constants.HudiTableMeta.PARTITION_KEY).
       option(TABLE_NAME, config.getStoreTableName).
-      option(TABLE_TYPE_OPT_KEY,MOR_TABLE_TYPE_OPT_VAL).
       option(DataSourceWriteOptions.HIVE_STYLE_PARTITIONING_OPT_KEY,true).
       mode(SaveMode.Append).
       save(config.getRealSavePath)

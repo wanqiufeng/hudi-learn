@@ -89,7 +89,6 @@ object CanalKafkaImport2Hudi {
     data.write.format("hudi").
       option(OPERATION_OPT_KEY, optType).
       option(PRECOMBINE_FIELD_OPT_KEY, config.getPrecombineKey).
-      option(TABLE_TYPE_OPT_KEY,MOR_TABLE_TYPE_OPT_VAL).
       option(RECORDKEY_FIELD_OPT_KEY, config.getPrimaryKey).
       option(PARTITIONPATH_FIELD_OPT_KEY, Constants.HudiTableMeta.PARTITION_KEY).
       option(TABLE_NAME, config.getStoreTableName).
