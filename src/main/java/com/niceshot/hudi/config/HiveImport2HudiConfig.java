@@ -16,6 +16,8 @@ public class HiveImport2HudiConfig extends HudiTableSaveConfig implements Serial
     private String hiveBasePath = "/user/hive/warehouse";
     @Parameter(names = {"--hive-site-path"},description = "hive-site.xml path")
     private String hiveConfFilePath;
+    @Parameter(names = {"--tmp-data-path"},description = "spark runtime tmp file path")
+    private String tmpDataPath;
 
     public String getSyncHiveDb() {
         return syncHiveDb;
@@ -47,5 +49,13 @@ public class HiveImport2HudiConfig extends HudiTableSaveConfig implements Serial
 
     public void setHiveConfFilePath(String hiveConfFilePath) {
         this.hiveConfFilePath = hiveConfFilePath;
+    }
+
+    public String getTmpDataPath() {
+        return tmpDataPath;
+    }
+
+    public void setTmpDataPath(String tmpDataPath) {
+        this.tmpDataPath = tmpDataPath;
     }
 }
