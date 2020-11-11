@@ -93,6 +93,11 @@ public class CanalDataParser {
      */
     private static Map<String,String> addHudiRecognizePartition(Map<String, String> dataMap, String partitionDateField) {
         String partitionOriginalValue = dataMap.get(partitionDateField);
+        if(StringUtils.isBlank(partitionOriginalValue)) {
+            log.error("分区日期为空，改为9999/12/30");
+            dataMap.put(Constants.HudiTableMeta.PARTITION_KEY, Constants.HudiTableMeta.VOID_DATE_PARTITION_VAL);
+            return dataMap;
+        }
         Preconditions.checkArgument(StringUtils.isNotBlank(partitionOriginalValue),"partition value can not be null");
         String hudiPartitionFormatValue;
         if(DateUtils.isValidDateTime(partitionOriginalValue)) {
