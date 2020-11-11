@@ -28,7 +28,7 @@ object HiveImport2Hudi {
       .master("local[10]")
       .getOrCreate()
     spark.sparkContext.hadoopConfiguration.addResource(new File(config.getHiveConfFilePath).toURI.toURL)
-    val df = spark.sqlContext.sql("""SELECT result.*,date_format(to_timestamp("""+config.getPartitionKey+""", "yyyy-MM-dd HH:mm:ss"), "yyyy/MM/dd") as """+ Constants.HudiTableMeta.PARTITION_KEY+""" from """+config.getSyncHiveDb+"""."""+config.getSyncHiveTable+""" as result""")
+    val df = spark.sqlContext.sql("""SELECT result.*,date_format(to_timestamp("""+config.getPartitionKey+""", "yyyy-MM-dd"), "yyyy/MM/dd") as """+ Constants.HudiTableMeta.PARTITION_KEY+""" from """+config.getSyncHiveDb+"""."""+config.getSyncHiveTable+""" as result""")
     df.show(10)
     hudiDataUpsert(config,df)
   }
