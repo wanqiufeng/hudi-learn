@@ -14,6 +14,10 @@ public class CanalKafkaImport2HudiConfig extends HudiTableSaveConfig{
     @Parameter(names = {"--kafka-group"},description = "kafka group which for consume binlog from canal,suggest use default value ." +
             "default value construct by dbName ,tableName.eg. dbName:crm ,tableName:order, then topic name is :hudi_crm__order")
     private String kafkaGroup;
+
+    @Parameter(names = {"--sync-table-info-file"},description = "配置有同步表的主键，分区字段信息的配置文件")
+    private String syncTableInfoFile;
+
     @Parameter(names = {"--duration-seconds"},description = "batch time length for spark streaming,default is '10'")
     private Long durationSeconds = 10L;
 
@@ -47,5 +51,13 @@ public class CanalKafkaImport2HudiConfig extends HudiTableSaveConfig{
 
     public void setDurationSeconds(Long durationSeconds) {
         this.durationSeconds = durationSeconds;
+    }
+
+    public String getSyncTableInfoFile() {
+        return syncTableInfoFile;
+    }
+
+    public void setSyncTableInfoFile(String syncTableInfoFile) {
+        this.syncTableInfoFile = syncTableInfoFile;
     }
 }

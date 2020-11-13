@@ -11,7 +11,7 @@ import org.apache.hudi.com.beust.jcommander.JCommander;
  * @author created by chenjun at 2020-10-30 14:59
  */
 public class ConfigParser {
-    public static CanalKafkaImport2HudiConfig parseHudiDataSaveConfig(String[] args) {
+    public static CanalKafkaImport2HudiConfig parseHudiCanalDataConfig(String[] args) {
         CanalKafkaImport2HudiConfig config = new CanalKafkaImport2HudiConfig();
         JCommander.newBuilder()
                 .addObject(config)

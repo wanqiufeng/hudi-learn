@@ -1,6 +1,6 @@
 package com.niceshot.hudi
 
-import com.niceshot.hudi.util.CanalDataParser
+import com.niceshot.hudi.util.CanalDataProcessor
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.streaming.{Seconds, StreamingContext}

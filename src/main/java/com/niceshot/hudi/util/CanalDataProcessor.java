@@ -5,14 +5,12 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.niceshot.hudi.bo.CanalObject;
 import com.niceshot.hudi.bo.HudiHandleObject;
+import com.niceshot.hudi.bo.SyncTableInfo;
 import com.niceshot.hudi.constant.Constants;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
-import org.apache.commons.math3.util.Pair;
 
 import java.io.IOException;
-import java.sql.Types;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -22,7 +20,7 @@ import java.util.stream.Collectors;
  * @author created by chenjun at 2020-10-23 18:10
  */
 @Slf4j
-public class CanalDataParser {
+public class CanalDataProcessor {
     private static Set<String> allowedOparation = Sets.newHashSet(Constants.CanalOperationType.INSERT, Constants.CanalOperationType.UPDATE, Constants.CanalOperationType.DELETE);
     private static Map<String, String> canalOperationMapping2HudiOperation = Maps.newHashMap();
 
@@ -39,7 +37,7 @@ public class CanalDataParser {
      * @return
      * @throws IOException
      */
-    public static HudiHandleObject parse(String originalCanalData) throws IOException {
+    public static HudiHandleObject parse2(String originalCanalData) throws IOException {
         Preconditions.checkNotNull(originalCanalData, "canal data can not be null");
         //直接一次性解析成对象, 从对象中提取出想要的东西
         //如果不为自己关注的操作类型，直接范围
@@ -60,6 +58,10 @@ public class CanalDataParser {
 
 
 
+    public static CanalObject parse(String originalCanalData) {
+        return null;
+    }
+
     /**
      * 将canal中的map数据，转化成json List
      *
@@ -76,6 +78,16 @@ public class CanalDataParser {
                 .map(stringObjectMap -> JsonUtils.toJson(stringObjectMap))
                 .collect(Collectors.toList());
     }
+
+
+    public static String buildCanalEntryKey(HudiHandleObject entry) {
+        StringBuilder stringBuilder = new StringBuilder();
+        stringBuilder.append(entry.getDatabase());
+        stringBuilder.append("__");
+        stringBuilder.append(entry.getTable());
+        return stringBuilder.toString();
+    }
+
 
 
     private static Map<String, String> toLowerCaseKeyMap(Map<String, String> dataMap) {

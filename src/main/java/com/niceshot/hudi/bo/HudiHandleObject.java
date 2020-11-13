@@ -14,6 +14,7 @@ public class HudiHandleObject {
     private String table;
     private String operationType;
     private List<Map<String,String>> data;
+    private List<String> jsonData;
 
 
     public String getDatabase() {
@@ -46,5 +47,13 @@ public class HudiHandleObject {
 
     public void setData(List<Map<String, String>> data) {
         this.data = data;
+    }
+
+    public List<String> getJsonData() {
+        return jsonData;
+    }
+
+    public void setJsonData(List<String> jsonData) {
+        this.jsonData = jsonData;
     }
 }

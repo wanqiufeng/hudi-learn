@@ -20,4 +20,10 @@ public interface Constants {
         String PARTITION_KEY = "_partition_key";
         String VOID_DATE_PARTITION_VAL = "9999/12/30";
     }
+
+    interface SyncTableInfoConfig {
+        String PARTITION_KEY_SUFFIX = "partitionkey";
+        String PRIMARY_KEY_SUFFIX = "primarykey";
+        String PRECOMBINE_KEY_SUFFIX = "precombinekey";
+    }
 }
