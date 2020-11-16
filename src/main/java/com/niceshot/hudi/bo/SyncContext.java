@@ -2,20 +2,24 @@ package com.niceshot.hudi.bo;
 
 import com.niceshot.hudi.config.CanalKafkaImport2HudiConfig;
 import com.niceshot.hudi.constant.Constants;
+import com.niceshot.hudi.util.CanalDataProcessor;
 import com.niceshot.hudi.util.ConfigParser;
 import com.niceshot.hudi.util.PropertiesUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.math3.util.Pair;
 
+import java.io.Serializable;
 import java.util.List;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
  * @author created by chenjun at 2020-11-13 14:14
  */
-public class SyncContext {
+public class SyncContext implements Serializable {
     private CanalKafkaImport2HudiConfig appConfig;
     private List<SyncTableInfo> tableInfos;
 
@@ -35,8 +39,13 @@ public class SyncContext {
     }
 
     public HudiHandleObject buildHudiData(CanalObject canalObject) {
-        return null;
+        HudiHandleObject result = CanalDataProcessor.parse(canalObject);
+        String partitionKey = findPartitionKey(canalObject);
+        List<String> jsonDataString = CanalDataProcessor.buildJsonDataString(result.getData(), partitionKey);
+        result.setJsonData(jsonDataString);
+        return result;
     }
+
 
     public CanalKafkaImport2HudiConfig getAppConfig() {
         return appConfig;
@@ -54,6 +63,12 @@ public class SyncContext {
         this.tableInfos = tableInfos;
     }
 
+    private String findPartitionKey(CanalObject result) {
+        Optional<SyncTableInfo> tableInfo = tableInfos.stream().filter(tableinfo -> isSyncTable(result)).findFirst();
+        SyncTableInfo syncTableInfo = tableInfo.get();
+        return syncTableInfo.getPartitionKey();
+    }
+
     private List<SyncTableInfo> readSyncTableInfo(CanalKafkaImport2HudiConfig config) {
         Properties properties = PropertiesUtils.loadPropertiesFile(config.getSyncTableInfoFile());
         Set<Pair<String, String>> dbAndTableInfos = properties.keySet().stream().map(key -> obtainDbAndTableInfo(key)).collect(Collectors.toSet());
@@ -64,7 +79,7 @@ public class SyncContext {
             String primaryKeyValue = properties.getProperty(primaryKey, "id");
             String preCombineKey = buildKey(db, table, Constants.SyncTableInfoConfig.PRECOMBINE_KEY_SUFFIX);
             String preCombineKeyValue = properties.getProperty(preCombineKey, "id");
-            String partitionKey = buildKey(db, table, Constants.SyncTableInfoConfig.PRECOMBINE_KEY_SUFFIX);
+            String partitionKey = buildKey(db, table, Constants.SyncTableInfoConfig.PARTITION_KEY_SUFFIX);
             String partitionKeyValue = properties.getProperty(partitionKey);
             SyncTableInfo syncTableInfo = new SyncTableInfo();
             syncTableInfo.setDb(db);
@@ -72,8 +87,9 @@ public class SyncContext {
             syncTableInfo.setPrimaryKey(primaryKeyValue);
             syncTableInfo.setPrecombineKey(preCombineKeyValue);
             syncTableInfo.setPartitionKey(partitionKeyValue);
-            syncTableInfo.setStoreTable(db + "__" + table);
-            syncTableInfo.setRealSavePath(buildRealSavePath(config, syncTableInfo.getStoreTable()));
+            String storeTableName = ConfigParser.buildHudiStoreTableName(db, table);
+            syncTableInfo.setStoreTable(storeTableName);
+            syncTableInfo.setRealSavePath(ConfigParser.buildRealSavePath(config.getBaseSavePath(),storeTableName));
             return syncTableInfo;
         }).collect(Collectors.toList());
     }
@@ -95,7 +111,7 @@ public class SyncContext {
 
     private Pair<String, String> obtainDbAndTableInfo(Object key) {
         String keyStr = String.valueOf(key);
-        String[] split = keyStr.split(".");
+        String[] split = keyStr.split("\\.");
         return Pair.create(split[0], split[1]);
     }
 }

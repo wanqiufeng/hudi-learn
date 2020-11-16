@@ -37,12 +37,7 @@ public class CanalDataProcessor {
      * @return
      * @throws IOException
      */
-    public static HudiHandleObject parse2(String originalCanalData) throws IOException {
-        Preconditions.checkNotNull(originalCanalData, "canal data can not be null");
-        //直接一次性解析成对象, 从对象中提取出想要的东西
-        //如果不为自己关注的操作类型，直接范围
-        //为自己操作的类型，构建对应对象
-        CanalObject canalObject = JsonUtils.getObjectMapper().readValue(originalCanalData, CanalObject.class);
+    public static HudiHandleObject parse(CanalObject canalObject) {
         Preconditions.checkNotNull(canalObject, "canal object can not be null");
         Preconditions.checkNotNull(canalObject.getTable(), "canal op type  can not be null ");
         if (!allowedOparation.contains(canalObject.getType())) {
@@ -56,10 +51,12 @@ public class CanalDataProcessor {
         return result;
     }
 
-
-
     public static CanalObject parse(String originalCanalData) {
-        return null;
+        try {
+            return JsonUtils.getObjectMapper().readValue(originalCanalData, CanalObject.class);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     /**
@@ -78,17 +75,6 @@ public class CanalDataProcessor {
                 .map(stringObjectMap -> JsonUtils.toJson(stringObjectMap))
                 .collect(Collectors.toList());
     }
-
-
-    public static String buildCanalEntryKey(HudiHandleObject entry) {
-        StringBuilder stringBuilder = new StringBuilder();
-        stringBuilder.append(entry.getDatabase());
-        stringBuilder.append("__");
-        stringBuilder.append(entry.getTable());
-        return stringBuilder.toString();
-    }
-
-
 
     private static Map<String, String> toLowerCaseKeyMap(Map<String, String> dataMap) {
         Map<String, String> result = Maps.newHashMapWithExpectedSize(dataMap.size());

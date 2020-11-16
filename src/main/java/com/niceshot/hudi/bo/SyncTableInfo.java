@@ -2,10 +2,12 @@ package com.niceshot.hudi.bo;
 
 import lombok.Builder;
 
+import java.io.Serializable;
+
 /**
  * @author created by chenjun at 2020-11-13 14:01
  */
-public class SyncTableInfo {
+public class SyncTableInfo implements Serializable {
     private String db;
     private String table;
     private String primaryKey;

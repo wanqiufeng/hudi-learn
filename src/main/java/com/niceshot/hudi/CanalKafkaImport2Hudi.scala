@@ -1,6 +1,6 @@
 package com.niceshot.hudi
 
-import java.util.concurrent.CompletableFuture
+import java.util.concurrent.{CompletableFuture, TimeUnit}
 
 import com.niceshot.hudi.bo.{HudiHandleObject, SyncContext, SyncTableInfo}
 import com.niceshot.hudi.constant.Constants
@@ -33,6 +33,7 @@ object CanalKafkaImport2Hudi {
     val appName = "hudi_sync_canal_app"
     val conf = new SparkConf()
       .setAppName(appName)
+      .setMaster("local[3]")
       .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
     val ssc = new StreamingContext(conf, Seconds(config.getDurationSeconds))
     val spark = SparkSession.builder().config(conf).getOrCreate();
@@ -72,13 +73,12 @@ object CanalKafkaImport2Hudi {
           })
           computeArray :+ computeUnit
         }
-        CompletableFuture.allOf(computeArray:_*)
+        CompletableFuture.allOf(computeArray: _*).get(3,TimeUnit.HOURS)
       } catch {
         case exception: Exception => logger.error(exception.getMessage, exception)
       } finally {
         stream.asInstanceOf[CanCommitOffsets].commitAsync(offsetRanges)
       }
-
     })
     ssc.start()
     ssc.awaitTermination()
@@ -100,7 +100,7 @@ object CanalKafkaImport2Hudi {
     if (!deleteDf.isEmpty()) {
       logger.info("开始删除操作")
       val deleteData = deleteDf.map(hudiData => {
-        CanalDataProcessor.buildJsonDataString(hudiData.getData, syncTable.getPartitionKey)
+        hudiData.getJsonData
       }).flatMap(data => data)
       val df = spark.read.json(deleteData)
       hudiDataUpsertOrDelete(syncTable, df, DELETE_OPERATION_OPT_VAL)

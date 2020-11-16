@@ -108,7 +108,7 @@
             <groupId>org.apache.hudi</groupId>
             <artifactId>hudi-spark-bundle_2.11</artifactId>
             <version>0.6.0</version>
-            <scope>provided</scope>
+            <!--<scope>provided</scope>-->
             <!--need manual install in spark lib-->
             <exclusions>
                 <exclusion>
@@ -127,7 +127,7 @@
             <groupId>org.apache.spark</groupId>
             <artifactId>spark-hive_2.11</artifactId>
             <version>2.4.4</version>
-            <scope>provided</scope>
+            <!--<scope>provided</scope>-->
             <exclusions>
                 <exclusion>
                     <groupId>org.apache.hive</groupId>
@@ -139,7 +139,7 @@
             <groupId>org.apache.hive</groupId>
             <artifactId>hive-exec</artifactId>
             <version>1.1.0</version>
-            <scope>provided</scope>
+            <!--<scope>provided</scope>-->
             <!--need manual install in spark lib-->
         </dependency>
         <!-- https://mvnrepository.com/artifact/org.apache.hive/hive-jdbc -->
@@ -165,7 +165,7 @@
             <groupId>org.apache.spark</groupId>
             <artifactId>spark-streaming_2.11</artifactId>
             <version>2.4.4</version>
-            <scope>provided</scope>
+            <!--<scope>provided</scope>-->
         </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>

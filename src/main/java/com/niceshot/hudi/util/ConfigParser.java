@@ -17,10 +17,6 @@ public class ConfigParser {
                 .addObject(config)
                 .build()
                 .parse(args);
-        if(StringUtils.isBlank(config.getKafkaGroup())) {
-            config.setKafkaGroup(buildKafkaGroup(config));
-        }
-        setDefaultValueForHudiSave(config);
         return config;
     }
 
@@ -44,41 +40,30 @@ public class ConfigParser {
     }
 
 
-    private static void setDefaultValueForHudiSave(HudiTableSaveConfig config) {
+    private static void setDefaultValueForHudiSave(HiveImport2HudiConfig config) {
         if(StringUtils.isBlank(config.getStoreTableName())) {
-            config.setStoreTableName(buildHudiStoreTableName(config));
+            config.setStoreTableName(buildHudiStoreTableName(config.getMappingMysqlDbName(),config.getMappingMysqlTableName()));
         }
         if(StringUtils.isBlank(config.getRealSavePath())) {
-            config.setRealSavePath(buildRealSavePath(config));
+            config.setRealSavePath(buildRealSavePath(config.getBaseSavePath(),config.getStoreTableName()));
         }
     }
 
-    private static String buildKafkaGroup(CanalKafkaImport2HudiConfig config) {
+    public static String buildHudiStoreTableName(String dbName,String tableName) {
         StringBuilder stringBuilder = new StringBuilder();
-        stringBuilder.append("hudi_");
-        stringBuilder.append(config.getMappingMysqlDbName());
+        stringBuilder.append(dbName);
         stringBuilder.append("__");
-        stringBuilder.append(config.getMappingMysqlTableName());
+        stringBuilder.append(tableName);
         return stringBuilder.toString();
     }
 
-
-
-    private static String buildHudiStoreTableName(HudiTableSaveConfig config) {
+    public static String buildRealSavePath(String hudiBasePath,String hudiStoreName) {
         StringBuilder stringBuilder = new StringBuilder();
-        stringBuilder.append(config.getMappingMysqlDbName());
-        stringBuilder.append("__");
-        stringBuilder.append(config.getMappingMysqlTableName());
-        return stringBuilder.toString();
-    }
-
-    private static String buildRealSavePath(HudiTableSaveConfig config) {
-        StringBuilder stringBuilder = new StringBuilder();
-        stringBuilder.append(config.getBaseSavePath());
-        if(!config.getBaseSavePath().endsWith("/")) {
+        stringBuilder.append(hudiBasePath);
+        if(!hudiBasePath.endsWith("/")) {
             stringBuilder.append("/");
         }
-        stringBuilder.append(config.getStoreTableName());
+        stringBuilder.append(hudiStoreName);
         return stringBuilder.toString();
     }
 }
