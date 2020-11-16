@@ -25,6 +25,7 @@ object HiveMetaSync2Hudi {
     //构造sparksession对象
     val spark = SparkSession
       .builder
+      .master("local[1]")
       .appName("hudi2hiveMetaSync_"+config.getHiveDbName+"__"+config.getHiveTableName)
       .config("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
       .getOrCreate()

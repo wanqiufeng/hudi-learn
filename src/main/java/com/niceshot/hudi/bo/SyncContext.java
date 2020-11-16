@@ -13,7 +13,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
@@ -31,11 +30,15 @@ public class SyncContext implements Serializable {
         this.tableInfos = syncTableInfos;
     }
 
-    public boolean isSyncTable(CanalObject hudiHandleObject) {
+    public boolean isSyncTable(SyncTableInfo tableInfo, CanalObject canalObject) {
+        return tableInfo.getDb().equalsIgnoreCase(canalObject.getDatabase())
+                &&
+                tableInfo.getTable().equalsIgnoreCase(canalObject.getTable());
+    }
+
+    public boolean isSyncTable(CanalObject canalObject) {
         return tableInfos.stream().anyMatch(tableInfo ->
-                tableInfo.getDb().equalsIgnoreCase(hudiHandleObject.getDatabase())
-                        &&
-                        tableInfo.getTable().equalsIgnoreCase(hudiHandleObject.getTable()));
+                isSyncTable(tableInfo,canalObject) );
     }
 
     public HudiHandleObject buildHudiData(CanalObject canalObject) {
@@ -64,7 +67,7 @@ public class SyncContext implements Serializable {
     }
 
     private String findPartitionKey(CanalObject result) {
-        Optional<SyncTableInfo> tableInfo = tableInfos.stream().filter(tableinfo -> isSyncTable(result)).findFirst();
+        Optional<SyncTableInfo> tableInfo = tableInfos.stream().filter(tableinfo -> isSyncTable(tableinfo,result)).findFirst();
         SyncTableInfo syncTableInfo = tableInfo.get();
         return syncTableInfo.getPartitionKey();
     }
