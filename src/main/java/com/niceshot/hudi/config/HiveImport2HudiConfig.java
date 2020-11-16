@@ -8,13 +8,16 @@ import java.io.Serializable;
  * @author created by chenjun at 2020-11-02 14:14
  */
 public class HiveImport2HudiConfig extends HudiTableSaveConfig implements Serializable {
-
     @Parameter(names = {"--sync-hive-db-name"},description = "hive db which  will import to hudi,has no default value. eg. crm")
     private String syncHiveDb;
     @Parameter(names = {"--sync-hive-table-name"},description = "hive table which  will import to hudi,has no default value. eg. crm")
     private String syncHiveTable;
     @Parameter(names = {"--hive-base-path"},description = "hive warehouse base location in hdfs.defaut is '/user/hive/warehouse'")
     private String hiveBasePath = "/user/hive/warehouse";
+    @Parameter(names = {"--hive-site-path"},description = "hive-site.xml path")
+    private String hiveConfFilePath;
+    @Parameter(names = {"--tmp-data-path"},description = "spark runtime tmp file path")
+    private String tmpDataPath;
     @Parameter(names = {"--real-save-path"},description = "table data real store path,suggest to use default value. " +
             " default value is  construct by --base-save-path,--db-name,--table-name." +
             "eg:--base-save-path='hdfs://192.168.16.181:8020/hudi_data/',--db-name='crm',--table-name='order',then real save path is :hdfs://192.168.16.181:8020/hudi_data/crm__order")
@@ -55,6 +58,22 @@ public class HiveImport2HudiConfig extends HudiTableSaveConfig implements Serial
 
     public void setHiveBasePath(String hiveBasePath) {
         this.hiveBasePath = hiveBasePath;
+    }
+
+    public String getHiveConfFilePath() {
+        return hiveConfFilePath;
+    }
+
+    public void setHiveConfFilePath(String hiveConfFilePath) {
+        this.hiveConfFilePath = hiveConfFilePath;
+    }
+
+    public String getTmpDataPath() {
+        return tmpDataPath;
+    }
+
+    public void setTmpDataPath(String tmpDataPath) {
+        this.tmpDataPath = tmpDataPath;
     }
 
     public String getRealSavePath() {

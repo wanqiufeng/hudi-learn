@@ -74,6 +74,7 @@ object TestHudi3 {
     df.write.format("hudi").
       //option(OPERATION_OPT_KEY,"delete").
       options(getQuickstartWriteConfigs).
+      option(TABLE_TYPE_OPT_KEY,MOR_TABLE_TYPE_OPT_VAL).
       option(PRECOMBINE_FIELD_OPT_KEY, "ts").
       option(RECORDKEY_FIELD_OPT_KEY, "key").
       option(PARTITIONPATH_FIELD_OPT_KEY, "date").

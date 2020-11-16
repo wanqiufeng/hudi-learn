@@ -1,5 +1,7 @@
 package com.niceshot.hudi
 
+import java.io.File
+
 import com.niceshot.hudi.constant.Constants
 import com.niceshot.hudi.util.ConfigParser
 import org.apache.hadoop.fs.Path
@@ -35,7 +37,7 @@ object HiveMetaSync2Hudi {
       "hoodie.insert.shuffle.parallelism"->"2",
       "path"->config.getHudiTablePath,
       "hoodie.datasource.write.precombine.field"->"id",
-      "hoodie.datasource.hive_sync.partition_fields"->"_partition_date",
+      "hoodie.datasource.hive_sync.partition_fields"->Constants.HudiTableMeta.HIVE_PARTITION_KEY, //跟hudi的分区字段区分开来，否则在hue中无法基于分区字段过滤
       "hoodie.datasource.write.payload.class"->"org.apache.hudi.common.model.OverwriteWithLatestAvroPayload",
       "hoodie.datasource.hive_sync.use_jdbc"->"true",
       "hoodie.datasource.hive_sync.partition_extractor_class"->"org.apache.hudi.hive.SlashEncodedDayPartitionValueExtractor",
@@ -50,7 +52,7 @@ object HiveMetaSync2Hudi {
       //"hoodie.datasource.write.recordkey.field"->"id",
       //"hoodie.table.name"->"hudi_hive_test33",
       "hoodie.datasource.hive_sync.jdbcurl"->config.getHiveJdbcUrl,
-      "hoodie.datasource.write.table.type"->"COPY_ON_WRITE",
+      "hoodie.datasource.write.table.type"->COW_TABLE_TYPE_OPT_VAL,
       "hoodie.datasource.write.hive_style_partitioning"->"true",
       "hoodie.bloom.index.update.partition.path"->"true",
       "hoodie.datasource.hive_sync.username"->config.getHiveUser,
@@ -67,6 +69,8 @@ object HiveMetaSync2Hudi {
     val hiveConf: HiveConf = new HiveConf()
     val jsc = new JavaSparkContext(spark.sparkContext)
     val hadoopConf = jsc.hadoopConfiguration()
+    hadoopConf.set("fs.hdfs.impl", "org.apache.hadoop.hdfs.DistributedFileSystem")
+    hadoopConf.addResource(new File(config.getHiveConfFilePath).toURI.toURL)
     val fs = basePath.getFileSystem(hadoopConf)
     hiveConf.addResource(fs.getConf)
     new HiveSyncTool(hiveSyncConfig, hiveConf, fs).syncHoodieTable()

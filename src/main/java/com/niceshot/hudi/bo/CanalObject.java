@@ -2,6 +2,7 @@ package com.niceshot.hudi.bo;
 
 import lombok.Data;
 
+import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 
@@ -9,7 +10,7 @@ import java.util.Map;
  * @author created by chenjun at 2020-10-23 18:14
  */
 @Data
-public class CanalObject {
+public class CanalObject implements Serializable {
     private String table;
     private String type;
     private List<Map<String,String>> data;

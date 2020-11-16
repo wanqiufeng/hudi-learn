@@ -20,7 +20,8 @@ public class HiveMetaSyncConfig implements Serializable {
     private String hiveJdbcUrl;
     @Parameter(names = {"--hudi-table-path"},description = "the file system path which hudi table data stored ,eg:hdfs://192.168.16.181:8020/hudi_data/hudi_hive_test33")
     private String hudiTablePath;
-
+    @Parameter(names = {"--hive-site-path"},description = "hive-site.xml path")
+    private String hiveConfFilePath;
 
     public String getHiveDbName() {
         return hiveDbName;
@@ -69,5 +70,13 @@ public class HiveMetaSyncConfig implements Serializable {
 
     public void setHudiTablePath(String hudiTablePath) {
         this.hudiTablePath = hudiTablePath;
+    }
+
+    public String getHiveConfFilePath() {
+        return hiveConfFilePath;
+    }
+
+    public void setHiveConfFilePath(String hiveConfFilePath) {
+        this.hiveConfFilePath = hiveConfFilePath;
     }
 }

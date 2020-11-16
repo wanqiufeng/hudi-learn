@@ -19,6 +19,7 @@ public interface Constants {
     interface HudiTableMeta {
         String PARTITION_KEY = "_partition_key";
         String VOID_DATE_PARTITION_VAL = "9999/12/30";
+        String HIVE_PARTITION_KEY="hive_partition_key";
     }
 
     interface SyncTableInfoConfig {

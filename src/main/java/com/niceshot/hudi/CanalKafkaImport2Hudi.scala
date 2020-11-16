@@ -64,7 +64,10 @@ object CanalKafkaImport2Hudi {
           val computeUnit = CompletableFuture.runAsync(new Runnable {
             override def run(): Unit = {
               try {
-                val syncTableRdd = dataRdd.filter(record => syncTable.getDb.equalsIgnoreCase(record.getDatabase) && syncTable.getTable.equalsIgnoreCase(record.getTable))
+                val tempDb = syncTable.getDb
+                val tempTable = syncTable.getTable
+                println("hello========>")
+                val syncTableRdd = dataRdd.filter(record => tempDb.equalsIgnoreCase(record.getDatabase) && tempTable.equalsIgnoreCase(record.getTable))
                 tableDataOperation(spark, syncTable, syncTableRdd, logger)
               } catch {
                 case exception: Exception => logger.error(exception.getMessage, exception)

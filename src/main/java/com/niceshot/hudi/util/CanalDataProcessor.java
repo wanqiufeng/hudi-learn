@@ -33,7 +33,7 @@ public class CanalDataProcessor {
     /**
      * 将canal原始数据转化成Hudi可以使用的数据信息
      *
-     * @param originalCanalData
+     * @param canalObject
      * @return
      * @throws IOException
      */
