@@ -75,5 +75,16 @@ public class SyncTableInfo implements Serializable {
         this.realSavePath = realSavePath;
     }
 
-
+    @Override
+    public String toString() {
+        return "SyncTableInfo{" +
+                "db='" + db + '\'' +
+                ", table='" + table + '\'' +
+                ", primaryKey='" + primaryKey + '\'' +
+                ", precombineKey='" + precombineKey + '\'' +
+                ", partitionKey='" + partitionKey + '\'' +
+                ", storeTable='" + storeTable + '\'' +
+                ", realSavePath='" + realSavePath + '\'' +
+                '}';
+    }
 }

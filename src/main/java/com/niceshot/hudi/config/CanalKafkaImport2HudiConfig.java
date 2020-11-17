@@ -15,7 +15,7 @@ public class CanalKafkaImport2HudiConfig extends HudiTableSaveConfig{
             "default value construct by dbName ,tableName.eg. dbName:crm ,tableName:order, then topic name is :hudi_crm__order")
     private String kafkaGroup;
 
-    @Parameter(names = {"--sync-table-info-file"},description = "配置有同步表的主键，分区字段信息的配置文件")
+    @Parameter(names = {"--sync-table-info-file"},description = "配置有同步表properties文件，格式见fetch_canal_table.properties，必须存放在hdfs")
     private String syncTableInfoFile;
 
     @Parameter(names = {"--duration-seconds"},description = "batch time length for spark streaming,default is '10'")

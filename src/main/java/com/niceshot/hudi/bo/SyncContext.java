@@ -4,7 +4,7 @@ import com.niceshot.hudi.config.CanalKafkaImport2HudiConfig;
 import com.niceshot.hudi.constant.Constants;
 import com.niceshot.hudi.util.CanalDataProcessor;
 import com.niceshot.hudi.util.ConfigParser;
-import com.niceshot.hudi.util.PropertiesUtils;
+import com.niceshot.hudi.util.HdfsPropertiesUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.math3.util.Pair;
 
@@ -73,7 +73,7 @@ public class SyncContext implements Serializable {
     }
 
     private List<SyncTableInfo> readSyncTableInfo(CanalKafkaImport2HudiConfig config) {
-        Properties properties = PropertiesUtils.loadPropertiesFile(config.getSyncTableInfoFile());
+        Properties properties = HdfsPropertiesUtils.loadHdfsPropertiesFile(config.getSyncTableInfoFile());
         Set<Pair<String, String>> dbAndTableInfos = properties.keySet().stream().map(key -> obtainDbAndTableInfo(key)).collect(Collectors.toSet());
         return dbAndTableInfos.stream().map(pair -> {
             String db = pair.getFirst();
@@ -95,17 +95,6 @@ public class SyncContext implements Serializable {
             syncTableInfo.setRealSavePath(ConfigParser.buildRealSavePath(config.getBaseSavePath(),storeTableName));
             return syncTableInfo;
         }).collect(Collectors.toList());
-    }
-
-
-    private String buildRealSavePath(CanalKafkaImport2HudiConfig config, String storeTable) {
-        StringBuilder stringBuilder = new StringBuilder();
-        stringBuilder.append(config.getBaseSavePath());
-        if (!config.getBaseSavePath().endsWith("/")) {
-            stringBuilder.append("/");
-        }
-        stringBuilder.append(storeTable);
-        return stringBuilder.toString();
     }
 
     private String buildKey(String db, String table, String primaryKeySuffix) {

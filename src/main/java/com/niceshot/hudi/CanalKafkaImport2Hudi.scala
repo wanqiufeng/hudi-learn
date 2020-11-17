@@ -2,6 +2,7 @@ package com.niceshot.hudi
 
 import java.util.concurrent.{CompletableFuture, TimeUnit}
 
+import com.google.common.base.Stopwatch
 import com.niceshot.hudi.bo.{HudiHandleObject, SyncContext, SyncTableInfo}
 import com.niceshot.hudi.constant.Constants
 import com.niceshot.hudi.util.CanalDataProcessor
@@ -33,7 +34,7 @@ object CanalKafkaImport2Hudi {
     val appName = "hudi_sync_canal_app"
     val conf = new SparkConf()
       .setAppName(appName)
-      .setMaster("local[3]")
+      //.setMaster("local[3]")
       .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
     val ssc = new StreamingContext(conf, Seconds(config.getDurationSeconds))
     val spark = SparkSession.builder().config(conf).getOrCreate();
@@ -66,7 +67,7 @@ object CanalKafkaImport2Hudi {
               try {
                 val tempDb = syncTable.getDb
                 val tempTable = syncTable.getTable
-                println("hello========>")
+                logger.info("并发处理:"+syncTable.toString)
                 val syncTableRdd = dataRdd.filter(record => tempDb.equalsIgnoreCase(record.getDatabase) && tempTable.equalsIgnoreCase(record.getTable))
                 tableDataOperation(spark, syncTable, syncTableRdd, logger)
               } catch {
@@ -76,7 +77,12 @@ object CanalKafkaImport2Hudi {
           })
           computeArray :+ computeUnit
         }
+        val stopwatch = new Stopwatch()
+        stopwatch.start()
+        logger.info("等待本轮所有库表处理完成")
         CompletableFuture.allOf(computeArray: _*).get(3,TimeUnit.HOURS)
+        stopwatch.stop()
+        logger.info("本轮处理耗时："+stopwatch.toString)
       } catch {
         case exception: Exception => logger.error(exception.getMessage, exception)
       } finally {
