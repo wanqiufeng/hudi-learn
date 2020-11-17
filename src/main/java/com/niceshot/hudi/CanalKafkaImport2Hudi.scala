@@ -44,9 +44,11 @@ object CanalKafkaImport2Hudi {
       "key.deserializer" -> classOf[org.apache.kafka.common.serialization.StringDeserializer],
       "value.deserializer" -> classOf[org.apache.kafka.common.serialization.StringDeserializer],
       "group.id" -> config.getKafkaGroup,
-      "auto.offset.reset" -> "latest",
+      "auto.offset.reset" -> "earliest",
       "enable.auto.commit" -> "false",
-      "session.timeout.ms" -> "30000"
+      "session.timeout.ms" -> "30000",//30s
+      "max.poll.interval.ms"-> config.getKafkaMaxPollIntervalMills,
+      "max.poll.records"-> config.getKafkaMaxPollRecords
     )
     val topics = Array(config.getKafkaTopic)
     val stream = KafkaUtils.createDirectStream[String, String](
