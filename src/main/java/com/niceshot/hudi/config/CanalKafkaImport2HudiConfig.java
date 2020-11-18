@@ -26,6 +26,15 @@ public class CanalKafkaImport2HudiConfig extends HudiTableSaveConfig{
     @Parameter(names = {"--duration-seconds"},description = "batch time length for spark streaming,default is '10'")
     private Long durationSeconds = 10L;
 
+    @Parameter(names = {"--max-rate-per-partition"},description = "spark.streaming.kafka.maxRatePerPartition: Maximum rate (number of records per second) at which data will be read from each Kafka partition when using the new Kafka direct stream API")
+    private String maxRatePerPartition = "200";
+
+    @Parameter(names = {"--receiver-max-rate"},description = "spark.streaming.receiver.maxRate: Maximum rate (number of records per second) at which each receiver will receive data. Effectively, each stream will consume at most this number of records per second. Setting this configuration to 0 or a negative number will put no limit on the rate")
+    private String receiverMaxRate = "200";
+
+    @Parameter(names = {"--spark-sql-shuffle-partitions"},description = "spark.sql.shuffle.partitions: The default number of partitions to use when shuffling data for joins or aggregations. Note: For structured streaming, this configuration cannot be changed between query restarts from the same checkpoint location.")
+    private String sqlShufflePartition = "6";
+
     public String getKafkaServer() {
         return kafkaServer;
     }
@@ -80,5 +89,29 @@ public class CanalKafkaImport2HudiConfig extends HudiTableSaveConfig{
 
     public void setKafkaMaxPollRecords(String kafkaMaxPollRecords) {
         this.kafkaMaxPollRecords = kafkaMaxPollRecords;
+    }
+
+    public String getMaxRatePerPartition() {
+        return maxRatePerPartition;
+    }
+
+    public void setMaxRatePerPartition(String maxRatePerPartition) {
+        this.maxRatePerPartition = maxRatePerPartition;
+    }
+
+    public String getReceiverMaxRate() {
+        return receiverMaxRate;
+    }
+
+    public void setReceiverMaxRate(String receiverMaxRate) {
+        this.receiverMaxRate = receiverMaxRate;
+    }
+
+    public String getSqlShufflePartition() {
+        return sqlShufflePartition;
+    }
+
+    public void setSqlShufflePartition(String sqlShufflePartition) {
+        this.sqlShufflePartition = sqlShufflePartition;
     }
 }

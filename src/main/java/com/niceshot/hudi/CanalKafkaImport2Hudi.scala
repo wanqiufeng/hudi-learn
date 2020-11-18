@@ -37,6 +37,12 @@ object CanalKafkaImport2Hudi {
       .setAppName(appName)
       //.setMaster("local[3]")
       .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
+      .set("spark.executor.extraJavaOptions", "-XX:+UseConcMarkSweepGC")
+      .set("spark.locality.wait", "100")
+      .set("spark.streaming.backpressure.enabled", "true")
+      .set("spark.streaming.receiver.maxRate",config.getReceiverMaxRate)
+      .set("spark.streaming.kafka.maxRatePerPartition",config.getMaxRatePerPartition)
+      .set("spark.sql.shuffle.partitions",config.getSqlShufflePartition)
     val ssc = new StreamingContext(conf, Seconds(config.getDurationSeconds))
     val spark = SparkSession.builder().config(conf).getOrCreate();
 
@@ -138,7 +144,6 @@ object CanalKafkaImport2Hudi {
       option(TABLE_NAME, syncTable.getStoreTable).
       option(TABLE_TYPE_OPT_KEY, COW_TABLE_TYPE_OPT_VAL).
       option(DataSourceWriteOptions.HIVE_STYLE_PARTITIONING_OPT_KEY, true).
-      option(INSERT_DROP_DUPS_OPT_KEY, true).
       /*
         关闭hive数据结构实时同步，新增数据量大时，每次都去连hive metastore，怕扛不住
         option(DataSourceWriteOptions.TABLE_NAME_OPT_KEY,hudiTableName).
