@@ -40,8 +40,8 @@ public class CanalDataProcessor {
     public static HudiHandleObject parse(CanalObject canalObject) {
         Preconditions.checkNotNull(canalObject, "canal object can not be null");
         Preconditions.checkNotNull(canalObject.getTable(), "canal op type  can not be null ");
-        if (!allowedOparation.contains(canalObject.getType())) {
-            return null;
+        if (!isAllowedOperationBinlog(canalObject)) {
+            throw new RuntimeException("不允许的binlog操作。目前只支持insert,delete,update");
         }
         HudiHandleObject result = new HudiHandleObject();
         result.setOperationType(canalOperationMapping2HudiOperation.get(canalObject.getType()));
@@ -57,6 +57,10 @@ public class CanalDataProcessor {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public static boolean isAllowedOperationBinlog(CanalObject binlog) {
+        return allowedOparation.contains(binlog.getType());
     }
 
     /**

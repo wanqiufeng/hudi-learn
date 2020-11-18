@@ -19,6 +19,7 @@ import org.apache.spark.streaming.kafka010._
 import org.apache.spark.streaming.{Seconds, StreamingContext}
 
 import scala.collection.JavaConversions._
+import scala.util.control.Breaks.{break, breakable}
 
 /**
  * @author created by chenjun at 2020-10-14 15:32
@@ -60,20 +61,30 @@ object CanalKafkaImport2Hudi {
       val offsetRanges = recordRDD.asInstanceOf[HasOffsetRanges].offsetRanges
       try {
         val dataRdd = recordRDD.map(consumerRecord => CanalDataProcessor.parse(consumerRecord.value()))
+          .filter(consumerRecord => CanalDataProcessor.isAllowedOperationBinlog(consumerRecord))
           .filter(record => syncContext.isSyncTable(record))
           .map(record => syncContext.buildHudiData(record))
         val computeArray: Array[CompletableFuture[Void]] = Array()
         for (syncTable <- syncContext.getTableInfos) {
           val computeUnit = CompletableFuture.runAsync(new Runnable {
             override def run(): Unit = {
-              try {
-                val tempDb = syncTable.getDb
-                val tempTable = syncTable.getTable
-                logger.info("并发处理:"+syncTable.toString)
-                val syncTableRdd = dataRdd.filter(record => tempDb.equalsIgnoreCase(record.getDatabase) && tempTable.equalsIgnoreCase(record.getTable))
-                tableDataOperation(spark, syncTable, syncTableRdd, logger)
-              } catch {
-                case exception: Exception => logger.error(exception.getMessage, exception)
+              breakable {
+                for(a <- 1 to 3 ) {
+                  try {
+                    val tempDb = syncTable.getDb
+                    val tempTable = syncTable.getTable
+                    logger.info("并发处理:"+syncTable.toString)
+                    val syncTableRdd = dataRdd.filter(record => tempDb.equalsIgnoreCase(record.getDatabase) && tempTable.equalsIgnoreCase(record.getTable))
+                    tableDataOperation(spark, syncTable, syncTableRdd, logger)
+                    logger.info("数据处理成功，退出")
+                    break
+                  } catch {
+                    case exception: Exception => logger.error(exception.getMessage, exception)
+                  }
+                  if(a==3) {
+                    logger.warn("三次循环处理仍失败，数据丢失:"+syncTable.toString)
+                  }
+                }
               }
             }
           })
