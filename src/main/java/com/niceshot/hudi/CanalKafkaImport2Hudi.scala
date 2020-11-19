@@ -43,6 +43,12 @@ object CanalKafkaImport2Hudi {
       .set("spark.streaming.receiver.maxRate",config.getReceiverMaxRate)
       .set("spark.streaming.kafka.maxRatePerPartition",config.getMaxRatePerPartition)
       .set("spark.sql.shuffle.partitions",config.getSqlShufflePartition)
+      .set("spark.ui.retainedJobs","100")
+      .set("spark.ui.retainedStages","100")
+      .set("spark.ui.retainedTasks","500")
+      .set("spark.worker.ui.retainedExecutors","100")
+      .set("spark.worker.ui.retainedDrivers","100")
+      .set("spark.sql.ui.retainedExecutions","100")
     val ssc = new StreamingContext(conf, Seconds(config.getDurationSeconds))
     val spark = SparkSession.builder().config(conf).getOrCreate();
 
@@ -70,6 +76,7 @@ object CanalKafkaImport2Hudi {
           .filter(consumerRecord => CanalDataProcessor.isAllowedOperationBinlog(consumerRecord))
           .filter(record => syncContext.isSyncTable(record))
           .map(record => syncContext.buildHudiData(record))
+        dataRdd.cache()
         val computeArray: Array[CompletableFuture[Void]] = Array()
         for (syncTable <- syncContext.getTableInfos) {
           val computeUnit = CompletableFuture.runAsync(new Runnable {
@@ -96,6 +103,7 @@ object CanalKafkaImport2Hudi {
           })
           computeArray :+ computeUnit
         }
+        dataRdd.unpersist(true)
         val stopwatch = new Stopwatch()
         stopwatch.start()
         logger.info("等待本轮所有库表处理完成")
