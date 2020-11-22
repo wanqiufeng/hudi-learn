@@ -15,6 +15,7 @@ import org.apache.spark.streaming.kafka010._
 import org.apache.spark.streaming.{Seconds, StreamingContext}
 
 import scala.collection.JavaConversions._
+import scala.util.control.Breaks.{break, breakable}
 
 /**
  * @author created by chenjun at 2020-10-14 15:32
@@ -36,9 +37,10 @@ object CanalKafkaImport2Hudi {
       "key.deserializer" -> classOf[org.apache.kafka.common.serialization.StringDeserializer],
       "value.deserializer" -> classOf[org.apache.kafka.common.serialization.StringDeserializer],
       "group.id" -> config.getKafkaGroup,
-      "auto.offset.reset" -> "latest",
+      "auto.offset.reset" -> "earliest",
       "enable.auto.commit" -> "false",
-      "session.timeout.ms"->"30000"
+      "session.timeout.ms"->"30000",
+      "max.poll.interval.ms"->"300000"
     )
     val topics = Array(config.getKafkaTopic)
     val stream = KafkaUtils.createDirectStream[String, String](
@@ -48,55 +50,66 @@ object CanalKafkaImport2Hudi {
     )
     stream.foreachRDD(recordRDD => {
       val offsetRanges = recordRDD.asInstanceOf[HasOffsetRanges].offsetRanges
-      try {
-        val needOperationData = recordRDD.map(consumerRecord => CanalDataParser.parse(consumerRecord.value()))
-          .filter(consumerRecord => consumerRecord != null && consumerRecord.getDatabase == config.getMappingMysqlDbName && consumerRecord.getTable == config.getMappingMysqlTableName)
-        if (needOperationData.isEmpty()) {
-          logger.info("空结果集，不做操作")
-        } else {
-          logger.info("结果集不为空，开始操作")
-          val upsertDf = needOperationData.filter(record=>record.getOperationType != Constants.HudiOperationType.DELETE)
-          val deleteDf = needOperationData.filter(record=>record.getOperationType == Constants.HudiOperationType.DELETE)
-          if(!upsertDf.isEmpty()) {
-            logger.info("开始更新操作")
-            val upsertData = upsertDf.map(hudiData => {
-              CanalDataParser.buildJsonDataString(hudiData.getData, config.getPartitionKey)
-            }).flatMap(data => data)
-            val df = spark.read.json(upsertData)
-            hudiDataUpsertOrDelete(config, df, UPSERT_OPERATION_OPT_VAL)
+      //如果出错，
+        //超过3次，记录日志
+        //没超过3次，记录日志，继续循环
+      //不出错，则直接跳出
+      //
+      breakable {
+        for(a <- 1 to 3 ) {
+          try {
+            val needOperationData = recordRDD.map(consumerRecord => CanalDataParser.parse(consumerRecord.value()))
+              .filter(consumerRecord => consumerRecord != null && consumerRecord.getDatabase == config.getMappingMysqlDbName && consumerRecord.getTable == config.getMappingMysqlTableName)
+            if (needOperationData.isEmpty()) {
+              logger.info("空结果集，不做操作")
+            } else {
+              logger.info("结果集不为空，开始操作")
+              val upsertDf = needOperationData.filter(record=>record.getOperationType != Constants.HudiOperationType.DELETE)
+              val deleteDf = needOperationData.filter(record=>record.getOperationType == Constants.HudiOperationType.DELETE)
+              if(!upsertDf.isEmpty()) {
+                logger.info("开始更新操作")
+                val upsertData = upsertDf.map(hudiData => {
+                  CanalDataParser.buildJsonDataString(hudiData.getData, config.getPartitionKey)
+                }).flatMap(data => data)
+                val df = spark.read.json(upsertData)
+                hudiDataUpsertOrDelete(config, df, UPSERT_OPERATION_OPT_VAL)
+              }
+              //基于自增id的crud，insert和update一定是在delete之前。因为一旦delete后，你再insert, 一定是新的id，不会存在反复insert同一个id的情况
+              //所以可以把delete操作，统一放到最后操作
+              if(!deleteDf.isEmpty()) {
+                logger.info("开始删除操作")
+                val deleteData = deleteDf.map(hudiData => {
+                  CanalDataParser.buildJsonDataString(hudiData.getData, config.getPartitionKey)
+                }).flatMap(data => data)
+                val df = spark.read.json(deleteData)
+                hudiDataUpsertOrDelete(config, df, DELETE_OPERATION_OPT_VAL)
+              }
+            }
+            break
+          } catch {
+            case exception: Exception => logger.error(exception.getMessage,exception)
           }
-          //基于自增id的crud，insert和update一定是在delete之前。因为一旦delete后，你再insert, 一定是新的id，不会存在反复insert同一个id的情况
-          //所以可以把delete操作，统一放到最后操作
-          if(!deleteDf.isEmpty()) {
-            logger.info("开始删除操作")
-            val deleteData = deleteDf.map(hudiData => {
-              CanalDataParser.buildJsonDataString(hudiData.getData, config.getPartitionKey)
-            }).flatMap(data => data)
-            val df = spark.read.json(deleteData)
-            hudiDataUpsertOrDelete(config, df, DELETE_OPERATION_OPT_VAL)
+          if(a==3) {
+            logger.warn("三次循环处理仍失败，数据丢失")
           }
         }
-      } catch {
-        case exception: Exception => logger.error(exception.getMessage,exception)
-      } finally {
-        stream.asInstanceOf[CanCommitOffsets].commitAsync(offsetRanges)
       }
-
+      stream.asInstanceOf[CanCommitOffsets].commitAsync(offsetRanges)
     })
     ssc.start()
     ssc.awaitTermination()
   }
 
   private def hudiDataUpsertOrDelete(config: CanalKafkaImport2HudiConfig, data: DataFrame, optType: String): Unit = {
+
     data.write.format("hudi").
       option(OPERATION_OPT_KEY, optType).
       option(PRECOMBINE_FIELD_OPT_KEY, config.getPrecombineKey).
       option(RECORDKEY_FIELD_OPT_KEY, config.getPrimaryKey).
       option(PARTITIONPATH_FIELD_OPT_KEY, Constants.HudiTableMeta.PARTITION_KEY).
       option(TABLE_NAME, config.getStoreTableName).
-      option(TABLE_TYPE_OPT_KEY,MOR_TABLE_TYPE_OPT_VAL).
+      option(TABLE_TYPE_OPT_KEY,COW_TABLE_TYPE_OPT_VAL).
       option(DataSourceWriteOptions.HIVE_STYLE_PARTITIONING_OPT_KEY, true).
-      option(INSERT_DROP_DUPS_OPT_KEY,true).
       /*
         关闭hive数据结构实时同步，新增数据量大时，每次都去连hive metastore，怕扛不住
         option(DataSourceWriteOptions.TABLE_NAME_OPT_KEY,hudiTableName).
