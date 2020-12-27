@@ -1,1 +1,3 @@
 # hudi-learn
+binlog-consumer 分支是消费Kafka binlog相关的代码
+history_import_and_meta_sync 分支提供了历史数据导入，以及hudi表结构同步至Hive meta的工具实现
