@@ -1,4 +1,6 @@
-# hudi-learn
+# 入口程序
+CanalKafkaImport2Hudi
+# 参数说明
 
 
 | 参数名|     含义|   是否必填|默认值|
