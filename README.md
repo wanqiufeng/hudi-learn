@@ -1,3 +1,6 @@
+# 项目简介
+本项目是使用Spark 对Apache Hudi进行封装，实现了消费Mysql binlog 将Mysql表映射至Hive表
+Mysql binlog的采集方式使用阿里的 canal 实现
 # Apache hudi 整体介绍文档地址
 https://www.cnblogs.com/niceshot/p/14198360.html
 
