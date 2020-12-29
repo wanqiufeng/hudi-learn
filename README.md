@@ -1,5 +1,5 @@
 
-##### 同步历史数据至hudi表
+# 同步历史数据至hudi表
 这里采用的思路是
 - 将mysql全量数据通过注入sqoop等工具，导入到hive表。
 - 然后采用分支代码中的工具HiveImport2HudiConfig，将数据导入Hudi表
@@ -29,7 +29,7 @@ nohup java -jar hudi-learn-1.0-SNAPSHOT.jar --sync-hive-db-name hudi_temp --sync
 ```
 
 
-##### 同步hudi表结构至hive meta
+# 同步hudi表结构至hive meta
 需要将hudi的数据结构和分区，以hive外表的形式同步至Hive meta，才能是Hive感知到hudi数据，并通过sql进行查询分析。Hudi本身在消费Binlog进行存储时，可以顺带将相关表元数据信息同步至hive。但考虑到数据到每条Hudi数据写入都要读写Hive Meta ，对Hive的性能可能影响很大。所以我单独开发了HiveMetaSyncConfig工具，用于同步hudi表元数据至Hive。考虑到目前程序只支持按天分区，所以同步工具可以一天执行一次即可。参数配置如下
 
 | 参数名      |     含义 |   是否必填   |默认值|
