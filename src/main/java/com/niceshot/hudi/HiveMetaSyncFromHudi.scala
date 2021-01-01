@@ -18,7 +18,7 @@ import scala.collection.mutable.ListBuffer
  * @author created by chenjun at 2020-10-29 15:42
  *
  */
-object HiveMetaSync2Hudi {
+object HiveMetaSyncFromHudi {
   def main(args: Array[String]): Unit = {
 
     val config = ConfigParser.parseHiveMetaSyncConfig(args)
