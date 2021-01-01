@@ -4,7 +4,7 @@
 - 将mysql全量数据通过注入sqoop等工具，导入到hive表。
 - 然后采用分支代码中的工具HiveImport2Hudi，将数据导入Hudi表
 
-HiveImport2HudiConfig提供了如下一些参数，用于配置程序执行行为
+HiveImport2Hudi提供了如下一些参数，用于配置程序执行行为
 
 | 参数名      |     含义 |   是否必填   |默认值|
 | :-------- | --------:| :------: | :------: |
